@@ -732,6 +732,16 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                
                {renderStepContent()}
 
+               <div className="md:hidden mt-12 border-t border-gray-100 pt-8 pb-4">
+                  <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 flex items-center justify-center gap-2">
+                    <span>📱</span> Veja como está ficando
+                  </p>
+                  <div className="flex justify-center">
+                     <div className="transform scale-[0.85] sm:scale-90 origin-top">
+                        <PhonePreview data={formData} />
+                     </div>
+                  </div>
+               </div>
              </motion.div>
            </AnimatePresence>
         </div>
