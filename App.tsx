@@ -15,10 +15,15 @@ import { BuilderData } from './types';
 
 function App() {
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
+  
+  // State to handle return from payment
+  const [startAtSuccess, setStartAtSuccess] = useState(false);
+  const [restoredData, setRestoredData] = useState<Partial<BuilderData> | undefined>(undefined);
+
   const [giftData, setGiftData] = useState<Partial<BuilderData> | null>(null);
 
   useEffect(() => {
-    // Check for gift data in URL on mount
+    // 1. Check for gift data in URL (Viewer Mode)
     const params = new URLSearchParams(window.location.search);
     const giftParam = params.get('gift');
 
@@ -41,14 +46,58 @@ function App() {
         };
 
         setGiftData(reconstructedData);
+        return; // If viewing a gift, ignore payment checks
       } catch (e) {
         console.error("Error parsing gift data", e);
       }
     }
+
+    // 2. Check for Payment Success (Return from Kirvano)
+    // Kirvano usually appends ?status=paid or similar. Check your integration settings.
+    const statusParam = params.get('status'); 
+    
+    if (statusParam === 'paid' || statusParam === 'success' || params.get('payment') === 'approved') {
+        const savedData = localStorage.getItem('codelove_pending_gift');
+        
+        if (savedData) {
+            try {
+                const parsed = JSON.parse(savedData);
+                
+                // Reconstruct data from compressed format if needed, or use directly if saved as full object
+                // Based on BuilderWizard, we save compressed data
+                const reconstructedData: Partial<BuilderData> = {
+                    title: parsed.t,
+                    message: parsed.m,
+                    date: parsed.d,
+                    music: parsed.mu,
+                    musicUrl: parsed.muu,
+                    background: parsed.bg,
+                    photoMode: parsed.pm,
+                    photos: parsed.p,
+                    selectedPlan: parsed.sp
+                };
+
+                setRestoredData(reconstructedData);
+                setStartAtSuccess(true);
+                setIsBuilderOpen(true);
+                
+                // Clear storage to prevent re-opening on refresh
+                localStorage.removeItem('codelove_pending_gift');
+                
+                // Clean URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } catch (e) {
+                console.error("Error restoring gift data", e);
+            }
+        }
+    }
+
   }, []);
 
   const openBuilder = () => {
     setIsBuilderOpen(true);
+    setStartAtSuccess(false);
+    setRestoredData(undefined);
     window.scrollTo(0, 0);
   };
 
@@ -63,7 +112,13 @@ function App() {
 
   // If builder is open, show builder
   if (isBuilderOpen) {
-    return <BuilderWizard onClose={closeBuilder} />;
+    return (
+        <BuilderWizard 
+            onClose={closeBuilder} 
+            initialData={restoredData}
+            startFinished={startAtSuccess}
+        />
+    );
   }
 
   // Default Landing Page

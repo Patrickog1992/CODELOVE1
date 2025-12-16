@@ -4,8 +4,17 @@ import { ArrowLeft, ArrowRight, Upload, Music, Check, X, Trash2, Search, PlayCir
 import { BuilderData, PhotoMode, BackgroundType } from '../../types';
 import { PhonePreview } from './PhonePreview';
 
+// --- CONFIGURAÇÃO KIRVANO ---
+// Substitua estes links pelos seus links reais da Kirvano quando tiver
+const CHECKOUT_LINKS = {
+  lifetime: "https://pay.kirvano.com/fc1da8bc-4d63-4a4b-aff4-ff46f74ab73f", 
+  annual: "https://kirvano.com/checkout/SEU_LINK_ANUAL"
+};
+
 interface BuilderWizardProps {
   onClose: () => void;
+  initialData?: Partial<BuilderData>;
+  startFinished?: boolean;
 }
 
 const steps = [
@@ -31,23 +40,31 @@ const PRESET_IMAGES = [
   "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=500&q=80"  // Gift
 ];
 
-export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
+export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialData, startFinished = false }) => {
   const [currentStep, setCurrentStep] = useState(0);
+  
+  // Initialize form data, potentially merging with restored data from localStorage
   const [formData, setFormData] = useState<BuilderData>({
-    title: '',
-    message: '',
-    date: '', // Will be stored as YYYY-MM-DD
-    photos: [],
-    photoMode: 'coverflow',
-    music: '',
-    musicUrl: '',
-    background: 'none',
-    email: '',
-    selectedPlan: null
+    title: initialData?.title || '',
+    message: initialData?.message || '',
+    date: initialData?.date || '',
+    photos: initialData?.photos || [],
+    photoMode: initialData?.photoMode || 'coverflow',
+    music: initialData?.music || '',
+    musicUrl: initialData?.musicUrl || '',
+    background: initialData?.background || 'none',
+    email: initialData?.email || '',
+    selectedPlan: initialData?.selectedPlan || null
   });
 
-  // Date Component State
-  const [dateParts, setDateParts] = useState({ day: '', month: '', year: '' });
+  // Parse date for selectors if exists
+  const parseDate = (dateString: string) => {
+      if(!dateString) return { day: '', month: '', year: '' };
+      const parts = dateString.split('-');
+      return parts.length === 3 ? { year: parts[0], month: parts[1], day: parts[2] } : { day: '', month: '', year: '' };
+  };
+
+  const [dateParts, setDateParts] = useState(parseDate(formData.date));
 
   // Update formData.date whenever parts change
   useEffect(() => {
@@ -57,7 +74,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     }
   }, [dateParts]);
 
-  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState(formData.musicUrl || '');
 
   // Photo Input State
   const [photoInputMode, setPhotoInputMode] = useState<'gallery' | 'upload'>('gallery');
@@ -70,12 +87,18 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedResult, setGeneratedResult] = useState<{ url: string; qrCodeUrl: string; warning?: string } | null>(null);
 
+  // --- AUTO START EFFECT (When returning from payment) ---
+  useEffect(() => {
+      if (startFinished) {
+          finishWizard();
+      }
+  }, [startFinished]);
+
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(c => c + 1);
-    } else {
-      finishWizard();
-    }
+    } 
+    // Removed direct finishWizard call here for the last step because buttons handle checkout
   };
 
   const handlePrev = () => {
@@ -83,9 +106,35 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     else onClose();
   };
 
+  // --- CHECKOUT LOGIC ---
+  const handleCheckout = (planType: 'annual' | 'lifetime') => {
+      // 1. Prepare data including selected plan
+      const dataToSave = { ...formData, selectedPlan: planType };
+      
+      // 2. Compress/Prepare for eventual URL generation
+      const compressedData = {
+        t: dataToSave.title,
+        m: dataToSave.message,
+        d: dataToSave.date,
+        mu: dataToSave.music,
+        muu: dataToSave.musicUrl,
+        bg: dataToSave.background,
+        pm: dataToSave.photoMode,
+        p: dataToSave.photos,
+        sp: planType // Save plan type
+      };
+
+      // 3. Save to localStorage to retrieve after payment
+      localStorage.setItem('codelove_pending_gift', JSON.stringify(compressedData));
+
+      // 4. Redirect to Checkout
+      window.location.href = CHECKOUT_LINKS[planType];
+  };
+
   const finishWizard = () => {
     setIsGenerating(true);
     
+    // Simulate processing time (even if instant, gives a nice UX)
     setTimeout(() => {
         // COMPRESSION: Map long keys to short keys to save URL space
         const compressedData = {
@@ -140,7 +189,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
       if (url.trim().length > 0) {
         setFormData(prev => ({
             ...prev,
-            music: "YouTube Music",
+            music: "Música Especial",
             musicUrl: url
         }));
       } else {
@@ -199,7 +248,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
           uploadData.append('file', file);
           uploadData.append('upload_preset', 'natal-upload'); // Using existing preset
           uploadData.append('folder', 'presentes-natal');
-          // uploadData.append('cloud_name', 'dzi28teuq'); // Usually not needed in FormData for unsigned if URL is correct
 
           try {
               const response = await fetch('https://api.cloudinary.com/v1_1/dzi28teuq/image/upload', {
@@ -443,37 +491,34 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
             </div>
           </div>
         );
-      case 4: // Music (Strictly YouTube only)
+      case 4: // Music (Youtube) - Reverted to simple input
         return (
           <div className="space-y-6">
-             <label className="block text-sm font-medium text-gray-700">Música de Fundo</label>
+             <label className="block text-sm font-medium text-gray-700">Link da Música (YouTube)</label>
 
-             {/* Youtube Input ONLY */}
-             <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="block text-xs font-bold text-gray-700 mb-2 flex items-center gap-1">
-                    <Youtube className="w-4 h-4 text-red-600" />
-                    Link do YouTube
-                </label>
-                <div className="flex gap-2">
+             <div className="space-y-4">
+                 <div className="relative">
+                    <Youtube className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input 
                         type="text"
-                        placeholder="Cole o link do YouTube aqui..."
+                        placeholder="Ex: https://www.youtube.com/watch?v=..."
                         value={youtubeUrl}
                         onChange={handleYoutubeChange}
-                        className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-christmas-red outline-none"
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-christmas-red outline-none shadow-sm transition-all"
                     />
-                </div>
-                <p className="text-[10px] text-gray-500 mt-2">
-                    Cole o link de qualquer vídeo do YouTube. O áudio tocará no celular.
-                </p>
-             </div>
-             
-             {formData.musicUrl && (
-                 <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100 animate-in fade-in">
-                     <CheckCircle className="w-4 h-4" />
-                     <span className="truncate">Vídeo reconhecido!</span>
                  </div>
-             )}
+                 
+                 <div className="bg-blue-50 p-4 rounded-xl flex gap-3 items-start border border-blue-100">
+                    <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                    <div className="text-sm text-blue-800">
+                        <p className="font-semibold mb-1">Como funciona?</p>
+                        <p className="opacity-90 leading-relaxed">
+                           A música tocará no player do presente (estilo Spotify). 
+                           Certifique-se de usar um link público do YouTube.
+                        </p>
+                    </div>
+                 </div>
+             </div>
           </div>
         );
       case 5: // Background
@@ -517,11 +562,11 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
             />
           </div>
         );
-      case 7: // Plan
+      case 7: // Plan - CHECKOUT INTEGRATION
         return (
           <div className="space-y-4">
             <div 
-              onClick={() => updateField('selectedPlan', 'lifetime')}
+              onClick={() => handleCheckout('lifetime')}
               className={`border-2 rounded-2xl p-4 cursor-pointer transition-all relative overflow-hidden ${
                 formData.selectedPlan === 'lifetime' 
                   ? 'border-christmas-red bg-red-50' 
@@ -546,7 +591,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
             </div>
 
             <div 
-              onClick={() => updateField('selectedPlan', 'annual')}
+              onClick={() => handleCheckout('annual')}
               className={`border-2 rounded-2xl p-4 cursor-pointer transition-all relative overflow-hidden ${
                 formData.selectedPlan === 'annual' 
                   ? 'border-christmas-red bg-red-50' 
@@ -569,6 +614,10 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                  </div>
               </div>
             </div>
+            
+            <p className="text-xs text-center text-gray-400 mt-4">
+               Ao selecionar um plano, você será redirecionado para o pagamento seguro.
+            </p>
           </div>
         );
       default:
@@ -781,13 +830,16 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
              >
                Voltar etapa
              </button>
-             <button
-               onClick={handleNext}
-               className="flex-1 px-6 py-3 rounded-full bg-christmas-red text-white font-bold hover:bg-christmas-darkRed shadow-lg shadow-red-200 transition-colors flex items-center justify-center gap-2"
-             >
-               {currentStep === steps.length - 1 ? 'Finalizar' : 'Próxima etapa'}
-               {currentStep < steps.length - 1 && <ArrowRight className="w-4 h-4" />}
-             </button>
+             {/* Only show 'Next' button if not on the last step (because plans are clickable) */}
+             {currentStep < steps.length - 1 && (
+                 <button
+                   onClick={handleNext}
+                   className="flex-1 px-6 py-3 rounded-full bg-christmas-red text-white font-bold hover:bg-christmas-darkRed shadow-lg shadow-red-200 transition-colors flex items-center justify-center gap-2"
+                 >
+                   Próxima etapa
+                   <ArrowRight className="w-4 h-4" />
+                 </button>
+             )}
           </div>
         </div>
       </div>
@@ -803,4 +855,4 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
       </div>
     </div>
   );
-};
+}
