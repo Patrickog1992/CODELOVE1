@@ -288,16 +288,17 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
       {/* Audio Element (Standard MP3) */}
       {!isYoutube && data.musicUrl && <audio ref={audioRef} src={data.musicUrl} loop playsInline />}
 
-      {/* YouTube Iframe (Hidden) */}
+      {/* YouTube Iframe (Hidden but optimized) */}
       {isYoutube && (
         <div className="hidden">
             <iframe 
                 ref={iframeRef}
                 width="1" 
                 height="1" 
-                src={`https://www.youtube.com/embed/${youtubeId}?enablejsapi=1&controls=0&loop=1&playlist=${youtubeId}&autoplay=1`} 
+                src={`https://www.youtube.com/embed/${youtubeId}?enablejsapi=1&controls=0&loop=1&playlist=${youtubeId}&autoplay=1&playsinline=1`} 
                 title="YouTube Audio Player" 
                 allow="autoplay; encrypted-media"
+                loading="eager"
             ></iframe>
         </div>
       )}
@@ -328,71 +329,73 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
           {/* Content Layer */}
           <div className="relative z-20 flex flex-col h-full text-white p-5 overflow-y-auto no-scrollbar scroll-smooth">
              
-             {/* Title - Fixed Responsive */}
-             <div className="mt-8 text-center w-full">
-                <h2 className="text-2xl font-poppins font-bold mb-2 w-full break-words whitespace-normal leading-tight shadow-sm text-shadow-lg px-2">
-                  {data.title || "Seu Título Aqui"}
-                </h2>
-             </div>
+             {/* Main Flex Container for uniform spacing */}
+             <div className="flex flex-col gap-6 w-full pt-4 pb-8">
 
-             {/* Date Counter - Fixed Responsive */}
-             {data.date && (
-               <div className="mt-4 flex flex-row items-center justify-center gap-1 text-xs font-mono bg-black/40 p-2 rounded-lg backdrop-blur-sm shadow-sm border border-white/10 w-full max-w-[90%] mx-auto">
-                 <div className="flex-1 text-center min-w-0">
-                     <div className="text-lg font-bold leading-none">{timeElapsed.years}</div>
-                     <div className="text-[9px] uppercase opacity-80">Anos</div>
+                 {/* Title - Fixed Responsive */}
+                 <div className="text-center w-full shrink-0">
+                    <h2 className="text-2xl font-poppins font-bold w-full break-words whitespace-normal leading-tight shadow-sm text-shadow-lg px-2">
+                      {data.title || "Seu Título Aqui"}
+                    </h2>
                  </div>
-                 <div className="w-[1px] h-6 bg-white/20"></div>
-                 <div className="flex-1 text-center min-w-0">
-                     <div className="text-lg font-bold leading-none">{timeElapsed.months}</div>
-                     <div className="text-[9px] uppercase opacity-80">Meses</div>
-                 </div>
-                 <div className="w-[1px] h-6 bg-white/20"></div>
-                 <div className="flex-1 text-center min-w-0">
-                     <div className="text-lg font-bold leading-none">{timeElapsed.days}</div>
-                     <div className="text-[9px] uppercase opacity-80">Dias</div>
-                 </div>
-               </div>
-             )}
 
-             {/* Message - Fixed Responsive */}
-             <div className="mt-6 bg-white/20 backdrop-blur-md p-4 rounded-xl text-sm leading-relaxed shadow-lg border border-white/10 min-h-[80px] text-shadow-sm mb-6 w-full break-words whitespace-pre-wrap">
-                {data.message || "Sua mensagem especial aparecerá aqui..."}
-             </div>
+                 {/* Date Counter - Fixed Responsive */}
+                 {data.date && (
+                   <div className="shrink-0 flex flex-row items-center justify-center gap-1 text-xs font-mono bg-black/40 p-2 rounded-lg backdrop-blur-sm shadow-sm border border-white/10 w-full max-w-[90%] mx-auto">
+                     <div className="flex-1 text-center min-w-0">
+                         <div className="text-lg font-bold leading-none">{timeElapsed.years}</div>
+                         <div className="text-[9px] uppercase opacity-80">Anos</div>
+                     </div>
+                     <div className="w-[1px] h-6 bg-white/20"></div>
+                     <div className="flex-1 text-center min-w-0">
+                         <div className="text-lg font-bold leading-none">{timeElapsed.months}</div>
+                         <div className="text-[9px] uppercase opacity-80">Meses</div>
+                     </div>
+                     <div className="w-[1px] h-6 bg-white/20"></div>
+                     <div className="flex-1 text-center min-w-0">
+                         <div className="text-lg font-bold leading-none">{timeElapsed.days}</div>
+                         <div className="text-[9px] uppercase opacity-80">Dias</div>
+                     </div>
+                   </div>
+                 )}
 
-             {/* Photo Gallery with Modes */}
-             <div className="flex-1 flex items-center justify-center min-h-[200px] w-full">
-                <div className="w-full aspect-square relative max-w-[260px]">
-                    {renderPhotoImage()}
-                </div>
+                 {/* Message - Fixed Responsive */}
+                 <div className="shrink-0 bg-white/20 backdrop-blur-md p-4 rounded-xl text-sm leading-relaxed shadow-lg border border-white/10 min-h-[80px] text-shadow-sm w-full break-words whitespace-pre-wrap">
+                    {data.message || "Sua mensagem especial aparecerá aqui..."}
+                 </div>
+
+                 {/* Photo Gallery with Modes - Flexible grow */}
+                 <div className="w-full aspect-square relative max-w-[260px] mx-auto shrink-0">
+                     {renderPhotoImage()}
+                 </div>
+                 
+                 {/* Music Player Mock - Pushed to bottom flow but with gap */}
+                 {data.music && (
+                   <div className="shrink-0 bg-black/60 backdrop-blur-xl p-3 rounded-2xl flex items-center gap-3 border border-white/10 shadow-xl cursor-pointer hover:bg-black/70 transition-colors w-full" onClick={toggleAudio}>
+                     <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden shrink-0">
+                        <div className="absolute inset-0 bg-gradient-to-tr from-christmas-red to-orange-500 opacity-80"></div>
+                        {isPlaying ? (
+                            <div className="flex items-end justify-center gap-[2px] h-4 w-5 z-10">
+                                <div className="w-[3px] bg-white rounded-t-sm animate-music-bar-1"></div>
+                                <div className="w-[3px] bg-white rounded-t-sm animate-music-bar-2"></div>
+                                <div className="w-[3px] bg-white rounded-t-sm animate-music-bar-3"></div>
+                            </div>
+                        ) : (
+                            <Play className="w-4 h-4 text-white z-10 fill-white ml-0.5" />
+                        )}
+                     </div>
+                     <div className="flex-1 overflow-hidden min-w-0">
+                       <p className="text-xs font-bold truncate text-white block">{data.music}</p>
+                       <p className="text-[10px] text-gray-300 flex items-center gap-1 truncate">
+                          {isPlaying ? 'Tocando agora...' : 'Toque para ouvir'}
+                       </p>
+                     </div>
+                     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                        {isPlaying ? <Pause className="w-4 h-4 text-white" /> : <Play className="w-4 h-4 text-white fill-white" />}
+                     </div>
+                   </div>
+                 )}
              </div>
-             
-             {/* Music Player Mock */}
-             {data.music && (
-               <div className="mt-4 mb-2 bg-black/60 backdrop-blur-xl p-3 rounded-2xl flex items-center gap-3 border border-white/10 shadow-xl cursor-pointer hover:bg-black/70 transition-colors w-full" onClick={toggleAudio}>
-                 <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden shrink-0">
-                    <div className="absolute inset-0 bg-gradient-to-tr from-christmas-red to-orange-500 opacity-80"></div>
-                    {isPlaying ? (
-                        <div className="flex items-end justify-center gap-[2px] h-4 w-5 z-10">
-                            <div className="w-[3px] bg-white rounded-t-sm animate-music-bar-1"></div>
-                            <div className="w-[3px] bg-white rounded-t-sm animate-music-bar-2"></div>
-                            <div className="w-[3px] bg-white rounded-t-sm animate-music-bar-3"></div>
-                        </div>
-                    ) : (
-                        <Play className="w-4 h-4 text-white z-10 fill-white ml-0.5" />
-                    )}
-                 </div>
-                 <div className="flex-1 overflow-hidden min-w-0">
-                   <p className="text-xs font-bold truncate text-white block">{data.music}</p>
-                   <p className="text-[10px] text-gray-300 flex items-center gap-1 truncate">
-                      {isPlaying ? 'Tocando agora...' : 'Toque para ouvir'}
-                   </p>
-                 </div>
-                 <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                    {isPlaying ? <Pause className="w-4 h-4 text-white" /> : <Play className="w-4 h-4 text-white fill-white" />}
-                 </div>
-               </div>
-             )}
 
           </div>
         </div>

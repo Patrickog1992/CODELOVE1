@@ -21,7 +21,7 @@ export const MockupSection: React.FC = () => {
             
             <div className="rounded-[2rem] overflow-hidden w-full h-full bg-white relative">
               {/* Christmas Screen UI Mockup */}
-              <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1543589077-47d81606c1bf?w=600&q=80)' }}>
+              <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url(https://i.imgur.com/0lbIxMI.jpg)' }}>
                 <div className="absolute inset-0 bg-black/40" />
                 
                 {/* Simulated Content */}
