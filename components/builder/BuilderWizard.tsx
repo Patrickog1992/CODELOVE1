@@ -44,6 +44,9 @@ const MUSIC_OPTIONS = [
 export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialData, startFinished = false }) => {
   const [currentStep, setCurrentStep] = useState(0);
   
+  // Ref for the scrollable container
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   // Initialize form data, potentially merging with restored data from localStorage
   const [formData, setFormData] = useState<BuilderData>({
     title: initialData?.title || '',
@@ -79,6 +82,13 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
     }
   }, [dateParts]);
   
+  // Auto-scroll to top when step changes
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [currentStep]);
+
   // Custom Upload State
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -717,7 +727,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 md:p-10 scroll-smooth">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 md:p-10 scroll-smooth">
            <AnimatePresence mode="wait">
              <motion.div
                key={currentStep}
@@ -742,28 +752,27 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                      </div>
                   </div>
                </div>
+
+                <div className="mt-8 pt-6 border-t border-gray-100 flex gap-4 pb-4">
+                     <button
+                       onClick={handlePrev}
+                       className="flex-1 px-6 py-3 rounded-full border border-gray-300 text-gray-700 font-medium hover:bg-gray-100 transition-colors"
+                     >
+                       Voltar etapa
+                     </button>
+                     {currentStep < steps.length - 1 && (
+                         <button
+                           onClick={handleNext}
+                           className="flex-1 px-6 py-3 rounded-full bg-christmas-red text-white font-bold hover:bg-christmas-darkRed shadow-lg shadow-red-200 transition-colors flex items-center justify-center gap-2"
+                         >
+                           Próxima etapa
+                           <ArrowRight className="w-4 h-4" />
+                         </button>
+                     )}
+                </div>
+
              </motion.div>
            </AnimatePresence>
-        </div>
-
-        <div className="p-6 border-t border-gray-100 bg-gray-50">
-          <div className="max-w-md mx-auto flex gap-4">
-             <button
-               onClick={handlePrev}
-               className="flex-1 px-6 py-3 rounded-full border border-gray-300 text-gray-700 font-medium hover:bg-gray-100 transition-colors"
-             >
-               Voltar etapa
-             </button>
-             {currentStep < steps.length - 1 && (
-                 <button
-                   onClick={handleNext}
-                   className="flex-1 px-6 py-3 rounded-full bg-christmas-red text-white font-bold hover:bg-christmas-darkRed shadow-lg shadow-red-200 transition-colors flex items-center justify-center gap-2"
-                 >
-                   Próxima etapa
-                   <ArrowRight className="w-4 h-4" />
-                 </button>
-             )}
-          </div>
         </div>
       </div>
 
