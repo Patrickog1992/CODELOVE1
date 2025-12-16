@@ -50,7 +50,6 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(autoPlay);
-  const [iframeLoaded, setIframeLoaded] = useState(false);
 
   const youtubeId = getYoutubeId(data.musicUrl || '');
   const isYoutube = !!youtubeId;
@@ -62,49 +61,31 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
     }
   }, [autoPlay]);
 
-  // Reliable YouTube Control Function
-  const sendYoutubeCommand = (command: 'playVideo' | 'pauseVideo') => {
-      if (!iframeRef.current || !iframeRef.current.contentWindow) return;
-      try {
-        iframeRef.current.contentWindow.postMessage(JSON.stringify({
-            event: 'command',
-            func: command,
-            args: []
-        }), '*');
-      } catch (e) {
-        console.error("YouTube command failed", e);
-      }
-  };
-
-  // Effect to control YouTube iframe via postMessage when isPlaying changes
+  // Unified Effect to control Audio/YouTube state
   useEffect(() => {
-    if (!isYoutube) return;
-    
-    const command = isPlaying ? 'playVideo' : 'pauseVideo';
-    sendYoutubeCommand(command);
-    
-    if (isPlaying) {
-        const timer = setTimeout(() => sendYoutubeCommand('playVideo'), 1000);
-        return () => clearTimeout(timer);
-    }
-  }, [isPlaying, isYoutube, iframeLoaded]);
-
-  // Effect to control standard Audio when isPlaying changes
-  useEffect(() => {
-      if (isYoutube || !audioRef.current) return;
-
-      if (isPlaying) {
-          const playPromise = audioRef.current.play();
-          if (playPromise !== undefined) {
-              playPromise.catch(e => {
-                  console.log("Auto-play prevented (browser policy):", e);
-                  setIsPlaying(false);
-              });
+      if (isYoutube) {
+          if (iframeRef.current && iframeRef.current.contentWindow) {
+              const action = isPlaying ? 'playVideo' : 'pauseVideo';
+              iframeRef.current.contentWindow.postMessage(JSON.stringify({
+                  event: 'command',
+                  func: action,
+                  args: []
+              }), '*');
           }
-      } else {
-          audioRef.current.pause();
+      } else if (audioRef.current) {
+          if (isPlaying) {
+              const playPromise = audioRef.current.play();
+              if (playPromise !== undefined) {
+                  playPromise.catch(e => {
+                      console.log("Auto-play blocked (browser policy):", e);
+                      setIsPlaying(false);
+                  });
+              }
+          } else {
+              audioRef.current.pause();
+          }
       }
-  }, [isPlaying, isYoutube]);
+  }, [isPlaying, isYoutube, youtubeId]);
 
 
   const toggleAudio = (e?: React.MouseEvent) => {
@@ -332,21 +313,16 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
       {/* Audio Element (Standard MP3) */}
       {!isYoutube && data.musicUrl && <audio ref={audioRef} src={data.musicUrl} loop playsInline />}
 
-      {/* YouTube Iframe (Hidden but optimized) */}
+      {/* YouTube Iframe (Simplified & Robust) */}
       {isYoutube && (
-        <div className="hidden">
+        <div className="absolute top-0 left-0 w-[1px] h-[1px] opacity-0 pointer-events-none overflow-hidden -z-50">
             <iframe 
                 ref={iframeRef}
-                onLoad={() => {
-                    setIframeLoaded(true);
-                    if (isPlaying) sendYoutubeCommand('playVideo');
-                }}
-                width="1" 
-                height="1" 
-                src={`https://www.youtube.com/embed/${youtubeId}?enablejsapi=1&controls=0&loop=1&playlist=${youtubeId}&autoplay=${isPlaying ? 1 : 0}&playsinline=1`} 
+                width="100%" 
+                height="100%" 
+                src={`https://www.youtube.com/embed/${youtubeId}?enablejsapi=1&controls=0&loop=1&playlist=${youtubeId}`}
                 title="YouTube Audio Player" 
                 allow="autoplay; encrypted-media"
-                loading="eager"
             ></iframe>
         </div>
       )}
