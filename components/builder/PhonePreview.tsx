@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { BuilderData } from '../../types';
 import { SnowEffect } from '../SnowEffect';
 
@@ -7,6 +7,17 @@ interface PhonePreviewProps {
 }
 
 export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Auto-play audio when mounted or when URL changes
+  useEffect(() => {
+    if (audioRef.current && data.musicUrl) {
+        audioRef.current.volume = 0.5;
+        // Attempt to play (might be blocked by browser if no user interaction yet)
+        audioRef.current.play().catch(e => console.log("Audio autoplay blocked until user interaction"));
+    }
+  }, [data.musicUrl]);
+
   // Helper to render background effects
   const renderBackground = () => {
     switch (data.background) {
@@ -142,6 +153,9 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
 
   return (
     <div>
+      {/* Audio Element */}
+      {data.musicUrl && <audio ref={audioRef} src={data.musicUrl} loop playsInline />}
+
       {/* Phone Frame */}
       <div className="relative border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[640px] w-[320px] shadow-2xl mx-auto flex flex-col overflow-hidden ring-4 ring-gray-900/10">
         {/* Hardware Buttons */}
@@ -155,7 +169,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
           {/* Background Layer */}
           <div className="absolute inset-0 bg-cover bg-center z-0 transition-all duration-500" 
                style={{ 
-                 backgroundImage: data.photos.length > 0 ? `url(${data.photos[0]})` : 'url(https://picsum.photos/600/1000?random=christmas)',
+                 backgroundImage: data.photos && data.photos.length > 0 ? `url(${data.photos[0]})` : 'url(https://picsum.photos/600/1000?random=christmas)',
                  filter: 'brightness(0.6)'
                }}>
           </div>
@@ -199,7 +213,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
              </div>
 
              {/* Photo Gallery Preview */}
-             {data.photos.length > 0 && (
+             {data.photos && data.photos.length > 0 && (
                <div className="mt-6">
                  <div className="text-xs uppercase tracking-wider mb-2 opacity-80 text-center">{data.photoMode} Mode</div>
                  <div className="aspect-square bg-white/10 rounded-lg flex items-center justify-center border border-white/20 overflow-hidden shadow-2xl">

@@ -43,7 +43,8 @@ export interface BuilderData {
   date: string;
   photos: string[]; // URLs for preview
   photoMode: PhotoMode;
-  music: string;
+  music: string; // Display name
+  musicUrl?: string; // Actual Audio URL
   background: BackgroundType;
   customEmojis?: string;
   email: string;

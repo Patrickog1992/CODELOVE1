@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Upload, Music, Check, X, Trash2, Search, PlayCircle, Loader2, Copy, Share2, Download, CheckCircle, AlertTriangle, Info } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Upload, Music, Check, X, Trash2, Search, PlayCircle, Loader2, Copy, Share2, Download, CheckCircle, AlertTriangle, Info, Image as ImageIcon } from 'lucide-react';
 import { BuilderData, PhotoMode, BackgroundType } from '../../types';
 import { PhonePreview } from './PhonePreview';
 
@@ -12,11 +12,31 @@ const steps = [
   { title: 'Titulo da página', description: 'Escreva o titulo dedicatório para a página.' },
   { title: 'Mensagem', description: 'Escreva uma mensagem especial. Seja criativo e demonstre todo seu carinho.' },
   { title: 'Data de início', description: 'Informe a data de início que simbolize o início de uma união, relacionamento, amizade, etc.' },
-  { title: 'Fotos', description: 'Anexe fotos e escolha o modo de exibição para personalizar a página.' },
-  { title: 'Música dedicada', description: 'Busque a música perfeita para o momento. A música será reproduzida automaticamente na página.' },
+  { title: 'Fotos', description: 'Escolha fotos da nossa galeria para garantir que o link funcione perfeitamente.' },
+  { title: 'Música dedicada', description: 'Escolha a trilha sonora perfeita para o momento.' },
   { title: 'Animação de fundo', description: 'Escolha uma animação de fundo para a página.' },
   { title: 'Informações de contato', description: 'Preencha as informações de contato para receber o link e o QR Code.' },
   { title: 'Escolha seu plano', description: 'Selecione o plano que melhor atende às suas necessidades.' },
+];
+
+// Curated Unsplash Images for Christmas/Romance
+const PRESET_IMAGES = [
+  "https://images.unsplash.com/photo-1543589077-47d81606c1bf?w=500&q=80",
+  "https://images.unsplash.com/photo-1512389142860-9c449e58a543?w=500&q=80",
+  "https://images.unsplash.com/photo-1576919228236-a097c32a58be?w=500&q=80",
+  "https://images.unsplash.com/photo-1545048702-79362596cdc9?w=500&q=80",
+  "https://images.unsplash.com/photo-1513297887119-d46091b24bfa?w=500&q=80",
+  "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=500&q=80",
+  "https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=500&q=80",
+  "https://images.unsplash.com/photo-1516723225219-c0c5417ae417?w=500&q=80"
+];
+
+// Real Audio URLs (using Google Sounds or reliable sources)
+const PRESET_MUSIC = [
+  { name: "Jingle Bells (Clássica)", url: "https://actions.google.com/sounds/v1/holidays/jingle_bells.ogg" },
+  { name: "We Wish You a Merry Christmas", url: "https://actions.google.com/sounds/v1/holidays/we_wish_you_a_merry_christmas.ogg" },
+  { name: "Piano Romântico", url: "https://cdn.pixabay.com/download/audio/2022/11/22/audio_febc508520.mp3?filename=christmas-piano-126868.mp3" }, 
+  { name: "Noite Feliz (Instrumental)", url: "https://cdn.pixabay.com/download/audio/2022/10/25/audio_51740954b4.mp3?filename=silent-night-123473.mp3" }
 ];
 
 export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
@@ -28,6 +48,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     photos: [],
     photoMode: 'coverflow',
     music: '',
+    musicUrl: '',
     background: 'none',
     email: '',
     selectedPlan: null
@@ -36,11 +57,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
   // State for Generation Process
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedResult, setGeneratedResult] = useState<{ url: string; qrCodeUrl: string; warning?: string } | null>(null);
-
-  // Music Search State
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<string[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,66 +73,38 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     else onClose();
   };
 
-  // Logic to generate unique Gift URL and QR Code
   const finishWizard = () => {
     setIsGenerating(true);
     
     setTimeout(() => {
-        // Create the payload for the URL
-        // OPTIMIZATION: Shorten keys to reduce URL size if possible, or just keep as is.
-        // NOTE: Photos are excluded because base64 images are too huge for QR codes/URL params without a database.
-        const exportData = {
-            t: formData.title, // shortened key
-            m: formData.message,
-            d: formData.date,
-            mu: formData.music,
-            bg: formData.background,
-            pm: formData.photoMode,
-            // photos: [] -> Intentionally omitted
-        };
-
-        // Standard JSON stringify (keys are now shorter to help with size)
-        // We need to map these back in App.tsx if we shorten them, 
-        // BUT for simplicity in this demo, let's keep full keys or handle mapping in viewer.
-        // Let's stick to full keys to ensure compatibility with existing Viewer logic, 
-        // but be mindful of length.
-        
+        // Create shortened payload
         const fullExportData = {
             title: formData.title,
             message: formData.message,
             date: formData.date,
             music: formData.music,
+            musicUrl: formData.musicUrl, // Include URL
             background: formData.background,
             photoMode: formData.photoMode,
+            photos: formData.photos // NOW WE INCLUDE PHOTOS because they are short URLs
         };
 
         const jsonString = JSON.stringify(fullExportData);
+        // Better encoding for URL safety
         const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
         
-        // Construct the URL
         const origin = window.location.origin;
         const pathname = window.location.pathname;
-        // Remove trailing slash if exists to be clean
         const cleanPath = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
         
         const uniqueUrl = `${origin}${cleanPath}?gift=${encodedData}`;
         
-        // QR Code Generation
-        // API Limit Check: 
-        // qrserver API via GET fails around ~2000 chars. 
-        // If uniqueUrl is huge, we warn the user.
-        
         let qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(uniqueUrl)}&color=D42426&bgcolor=ffffff&margin=10`;
         let warning = undefined;
 
-        if (uniqueUrl.length > 1800) {
-           // Fallback: Generate QR code with LESS data so it renders, but Link has full data
-           // We create a "lite" version for the QR code just so it looks nice
-           const liteData = { ...fullExportData, message: "Mensagem completa no link..." };
-           const liteEncoded = btoa(unescape(encodeURIComponent(JSON.stringify(liteData))));
-           const liteUrl = `${origin}${cleanPath}?gift=${liteEncoded}`;
-           qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(liteUrl)}&color=D42426&bgcolor=ffffff&margin=10`;
-           warning = "Sua mensagem é muito longa para o QR Code. O QR Code abrirá uma versão resumida, mas o Link Copiado contém tudo!";
+        if (uniqueUrl.length > 2000) {
+           // If too long, we might need to strip something, but using Unsplash URLs should be okay-ish.
+           warning = "Seu presente ficou muito grande! O QR Code pode demorar um pouco para ler. Tente usar menos fotos se tiver problemas.";
         }
 
         setGeneratedResult({
@@ -132,38 +120,32 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Music Search Simulation
-  const handleMusicSearch = (query: string) => {
-    setSearchQuery(query);
-    if (query.length > 2) {
-      setIsSearching(true);
-      setTimeout(() => {
-        setIsSearching(false);
-        setSearchResults([
-          `${query} - Original Mix`,
-          `${query} - Acoustic Version`,
-          `Best of ${query}`,
-          `Cover of ${query}`
-        ]);
-      }, 800);
+  const selectMusic = (music: { name: string, url: string }) => {
+    setFormData(prev => ({
+        ...prev,
+        music: music.name,
+        musicUrl: music.url
+    }));
+  };
+
+  // Gallery Logic
+  const togglePhoto = (url: string) => {
+    const currentPhotos = [...formData.photos];
+    if (currentPhotos.includes(url)) {
+        updateField('photos', currentPhotos.filter(p => p !== url));
     } else {
-      setSearchResults([]);
+        if (currentPhotos.length >= 8) return;
+        updateField('photos', [...currentPhotos, url]);
     }
   };
 
-  const selectMusic = (musicName: string) => {
-    updateField('music', musicName);
-    setSearchQuery(musicName);
-    setSearchResults([]);
-  };
-
-  const handlePhotoUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
+  // Fallback for local upload (still allowed but warned)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+
+    // Warning alert
+    alert("Atenção: Fotos do seu dispositivo só funcionam para visualização local. Para enviar o link para outra pessoa, use as fotos da Galeria!");
 
     const promises = Array.from(files).slice(0, 8).map(file => {
         return new Promise<string>((resolve) => {
@@ -174,15 +156,9 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     });
 
     Promise.all(promises).then(images => {
-        updateField('photos', images);
+        updateField('photos', [...formData.photos, ...images].slice(0, 8));
     });
     e.target.value = '';
-  };
-
-  const removePhoto = (index: number) => {
-    const newPhotos = [...formData.photos];
-    newPhotos.splice(index, 1);
-    updateField('photos', newPhotos);
   };
 
   const renderStepContent = () => {
@@ -195,11 +171,10 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
               type="text"
               value={formData.title}
               onChange={(e) => updateField('title', e.target.value)}
-              placeholder="Ex: João & Maria ou Feliz Aniversário"
+              placeholder="Ex: João & Maria"
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-christmas-red focus:border-transparent outline-none transition-all"
               maxLength={40}
             />
-            <p className="text-xs text-gray-500">Evite usar acentos ou caracteres especiais. Use apenas letras, números e espaços.</p>
           </div>
         );
       case 1: // Message
@@ -210,9 +185,9 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
               onChange={(e) => updateField('message', e.target.value)}
               placeholder="Escreva sua mensagem aqui..."
               className="w-full h-48 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-christmas-red focus:border-transparent outline-none transition-all resize-none"
-              maxLength={1200}
+              maxLength={500} // Reduced limit to help URL size
             />
-            <div className="text-right text-xs text-gray-400">{formData.message.length}/1200</div>
+            <div className="text-right text-xs text-gray-400">{formData.message.length}/500</div>
           </div>
         );
       case 2: // Date
@@ -225,59 +200,87 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
               onChange={(e) => updateField('date', e.target.value)}
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-christmas-red outline-none"
             />
-            <p className="text-xs text-gray-500">Preencha no formato: dia/mês/ano.</p>
           </div>
         );
-      case 3: // Photos
+      case 3: // Photos (Updated)
         return (
           <div className="space-y-6">
-            <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                className="hidden" 
-                multiple 
-                accept="image/*"
-            />
-            
-            <div 
-              onClick={handlePhotoUploadClick}
-              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:bg-gray-50 hover:border-christmas-red transition-all group"
-            >
-              <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3 group-hover:text-christmas-red" />
-              <p className="text-sm text-gray-600 font-medium">
-                {formData.photos.length > 0 ? `${formData.photos.length} fotos selecionadas` : 'Clique para adicionar fotos'}
-              </p>
-              <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG, GIF (máx. 8 fotos)</p>
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex gap-3 text-sm text-blue-700">
+                <Info className="w-5 h-5 shrink-0" />
+                <p>Para o Link funcionar 100%, escolha fotos da nossa galeria abaixo.</p>
             </div>
 
-            {formData.photos.length > 0 && (
+            <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700">Galeria de Natal</label>
                 <div className="grid grid-cols-4 gap-2">
-                    {formData.photos.map((photo, index) => (
-                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden group">
-                            <img src={photo} alt={`Upload ${index}`} className="w-full h-full object-cover" />
-                            <button 
-                                onClick={() => removePhoto(index)}
-                                className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                                <Trash2 className="w-5 h-5 text-white" />
-                            </button>
+                    {PRESET_IMAGES.map((url, idx) => (
+                        <div 
+                            key={idx} 
+                            onClick={() => togglePhoto(url)}
+                            className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${formData.photos.includes(url) ? 'border-christmas-red scale-95' : 'border-transparent hover:border-gray-300'}`}
+                        >
+                            <img src={url} alt="Preset" className="w-full h-full object-cover" />
+                            {formData.photos.includes(url) && (
+                                <div className="absolute inset-0 bg-christmas-red/20 flex items-center justify-center">
+                                    <CheckCircle className="w-6 h-6 text-white drop-shadow-md" />
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>
-            )}
+            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">Modo de mostrar</label>
-              <div className="grid grid-cols-2 gap-3">
+            <div className="border-t border-gray-100 pt-4">
+                 <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileChange} 
+                    className="hidden" 
+                    multiple 
+                    accept="image/*"
+                />
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 text-sm hover:border-gray-400 hover:bg-gray-50 transition-colors"
+                >
+                    Ou carregue do celular (não recomendado para compartilhar)
+                </button>
+            </div>
+            
+            {formData.photos.length > 0 && (
+                <div className="pt-2">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Fotos Selecionadas ({formData.photos.length})</p>
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                         {formData.photos.map((photo, index) => (
+                            <div key={index} className="relative w-16 h-16 shrink-0 rounded-md overflow-hidden group">
+                                <img src={photo} className="w-full h-full object-cover" />
+                                <button 
+                                    onClick={() => {
+                                        const newP = [...formData.photos];
+                                        newP.splice(index, 1);
+                                        updateField('photos', newP);
+                                    }}
+                                    className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <X className="w-4 h-4 text-white" />
+                                </button>
+                            </div>
+                         ))}
+                    </div>
+                </div>
+            )}
+            
+             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Modo de exibição</label>
+              <div className="grid grid-cols-2 gap-2">
                 {(['coverflow', 'cube', 'cards', 'flip'] as PhotoMode[]).map((mode) => (
                   <button
                     key={mode}
                     onClick={() => updateField('photoMode', mode)}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium capitalize transition-all border ${
+                    className={`px-3 py-2 rounded-lg text-xs font-medium capitalize transition-all border ${
                       formData.photoMode === mode
-                        ? 'bg-christmas-red text-white border-christmas-red shadow-md'
-                        : 'bg-white text-gray-700 border-gray-200 hover:border-christmas-red/50'
+                        ? 'bg-christmas-red text-white border-christmas-red'
+                        : 'bg-white text-gray-700 border-gray-200'
                     }`}
                   >
                     {mode}
@@ -287,51 +290,32 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
             </div>
           </div>
         );
-      case 4: // Music
+      case 4: // Music (Updated)
         return (
           <div className="space-y-4">
-             <label className="block text-sm font-medium text-gray-700">Música (Nome ou Artista)</label>
-             <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => handleMusicSearch(e.target.value)}
-                  placeholder="Ex: Coldplay - Sky full of stars"
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-christmas-red outline-none"
-                />
-                {isSearching && (
-                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <div className="w-4 h-4 border-2 border-christmas-red border-t-transparent rounded-full animate-spin"></div>
-                   </div>
-                )}
+             <label className="block text-sm font-medium text-gray-700">Escolha a Música</label>
+             <div className="space-y-2">
+                 {PRESET_MUSIC.map((track, idx) => (
+                     <button
+                        key={idx}
+                        onClick={() => selectMusic(track)}
+                        className={`w-full p-4 rounded-xl border flex items-center gap-3 transition-all ${
+                            formData.music === track.name 
+                            ? 'bg-red-50 border-christmas-red ring-1 ring-christmas-red' 
+                            : 'bg-white border-gray-200 hover:border-red-200'
+                        }`}
+                     >
+                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${formData.music === track.name ? 'bg-christmas-red text-white' : 'bg-gray-100 text-gray-400'}`}>
+                             {formData.music === track.name ? <Music className="w-5 h-5" /> : <PlayCircle className="w-5 h-5" />}
+                         </div>
+                         <div className="text-left flex-1">
+                             <div className={`font-medium ${formData.music === track.name ? 'text-christmas-darkRed' : 'text-gray-900'}`}>{track.name}</div>
+                             <div className="text-xs text-gray-500">Toque para selecionar</div>
+                         </div>
+                         {formData.music === track.name && <Check className="w-5 h-5 text-christmas-red" />}
+                     </button>
+                 ))}
              </div>
-
-             {searchResults.length > 0 && (
-               <div className="bg-white border border-gray-100 rounded-xl shadow-lg divide-y divide-gray-50 overflow-hidden">
-                  {searchResults.map((result, index) => (
-                    <button
-                      key={index}
-                      onClick={() => selectMusic(result)}
-                      className="w-full px-4 py-3 text-left hover:bg-red-50 flex items-center gap-3 transition-colors group"
-                    >
-                       <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 group-hover:bg-christmas-red group-hover:text-white transition-colors">
-                          <PlayCircle className="w-5 h-5" />
-                       </div>
-                       <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{result}</span>
-                    </button>
-                  ))}
-               </div>
-             )}
-
-             {formData.music && !isSearching && searchResults.length === 0 && (
-                <div className="bg-green-50 border border-green-100 rounded-lg p-3 flex items-center gap-2 text-green-700 text-sm">
-                   <Check className="w-4 h-4" />
-                   Música selecionada: <strong>{formData.music}</strong>
-                </div>
-             )}
-             
-             <p className="text-xs text-gray-500">A música selecionada será reproduzida automaticamente quando a página for aberta.</p>
           </div>
         );
       case 5: // Background
@@ -372,7 +356,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
               placeholder="Ex: seu.email@gmail.com"
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-christmas-red outline-none"
             />
-            <p className="text-xs text-gray-500">Enviaremos o link e o QR Code para este e-mail.</p>
           </div>
         );
       case 7: // Plan
@@ -401,11 +384,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                     <span className="text-xs text-gray-500">/uma vez</span>
                  </div>
               </div>
-              <ul className="text-xs space-y-1 text-gray-600 mb-2">
-                 <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-600" /> Vitalício (não expira)</li>
-                 <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-600" /> QR Code exclusivo</li>
-                 <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-600" /> Todas as animações</li>
-              </ul>
             </div>
 
             <div 
@@ -431,10 +409,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                     <span className="text-xs text-gray-500">/ano</span>
                  </div>
               </div>
-              <ul className="text-xs space-y-1 text-gray-500">
-                 <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-600" /> Válido por 1 ano</li>
-                 <li className="flex items-center gap-1"><X className="w-3 h-3 text-red-400" /> Sem memórias especiais</li>
-              </ul>
             </div>
           </div>
         );
@@ -478,7 +452,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                          
                          <h2 className="text-3xl font-bold text-gray-900 mb-2">Presente Pronto! 🎁</h2>
                          <p className="text-gray-500 mb-6 leading-relaxed">
-                             Seu presente foi gerado. Como não temos um servidor, <strong>todos os dados estão salvos no link abaixo</strong>.
+                             Seu presente foi gerado. Os dados da música e imagens estão salvos no link.
                          </p>
 
                          {/* Localhost Warning */}
@@ -489,7 +463,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                                      <div>
                                          <h4 className="font-bold text-yellow-800 text-sm">Atenção: Você está em Localhost</h4>
                                          <p className="text-xs text-yellow-700 mt-1 leading-relaxed">
-                                             O QR Code abaixo aponta para o seu computador. Se você escanear com o celular, <strong>não vai abrir</strong>. Para testar o QR Code real, você precisa publicar este site.
+                                             O QR Code abaixo aponta para o seu computador. Para funcionar no celular, publique o site (Deploy).
                                          </p>
                                      </div>
                                  </div>
@@ -542,13 +516,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                              <button onClick={onClose} className="block w-full py-4 text-gray-400 text-sm hover:text-gray-600 transition-colors">
                                  Criar outro presente
                              </button>
-                             
-                             <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 flex items-start gap-2 text-left">
-                                <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                                <p className="text-[10px] text-blue-600">
-                                    <strong>Nota Técnica:</strong> Como não usamos banco de dados, as fotos enviadas não são salvas no QR Code (apenas textos e configurações) para que o código funcione.
-                                </p>
-                             </div>
                          </div>
                      </motion.div>
                  </div>
