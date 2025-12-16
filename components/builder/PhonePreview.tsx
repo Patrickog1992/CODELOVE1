@@ -72,15 +72,6 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
     setCurrentPhotoIndex((prev) => (prev - 1 + photos.length) % photos.length);
   };
 
-  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    const swipeThreshold = 40; // Lower threshold for easier swipe
-    if (info.offset.x < -swipeThreshold) {
-        nextPhoto();
-    } else if (info.offset.x > swipeThreshold) {
-        prevPhoto();
-    }
-  };
-
   // Helper to render background OVERLAYS (not replacing the background)
   const renderBackgroundEffects = () => {
     switch (data.background) {
@@ -199,7 +190,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
     const selectedVariant = variants[mode as keyof typeof variants] || variants.coverflow;
 
     return (
-        <div className="relative w-full h-full perspective-1000 cursor-grab active:cursor-grabbing">
+        <div className="relative w-full h-full perspective-1000">
              <AnimatePresence mode='popLayout'>
                 <motion.div
                     key={activePhoto + currentPhotoIndex} // Force re-render on change
@@ -207,10 +198,6 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
                     initial="enter"
                     animate="center"
                     exit="exit"
-                    drag="x"
-                    dragConstraints={{ left: 0, right: 0 }}
-                    dragElastic={0.2} // More responsive feeling
-                    onDragEnd={handleDragEnd}
                     transition={{ 
                         type: 'spring', 
                         stiffness: 400, // Higher stiffness = Snappier
