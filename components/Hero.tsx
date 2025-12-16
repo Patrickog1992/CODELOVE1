@@ -7,6 +7,14 @@ interface HeroProps {
   onOpenBuilder: () => void;
 }
 
+const USER_AVATARS = [
+  "https://i.imgur.com/ymfZ9oQ.jpeg",
+  "https://i.imgur.com/Egm2wH7.jpeg",
+  "https://i.imgur.com/RGc4NuC.jpeg",
+  "https://i.imgur.com/DJZkiOD.jpeg",
+  "https://i.imgur.com/Ry3mBeu.jpeg"
+];
+
 export const Hero: React.FC<HeroProps> = ({ onOpenBuilder }) => {
   return (
     <section className="relative w-full overflow-hidden bg-gradient-to-b from-christmas-darkRed to-christmas-red text-white pt-36 pb-32">
@@ -36,12 +44,12 @@ export const Hero: React.FC<HeroProps> = ({ onOpenBuilder }) => {
 
         <div className="flex flex-col items-center gap-2">
           <div className="flex -space-x-4">
-             {[1, 2, 3, 4, 5].map((i) => (
+             {USER_AVATARS.map((src, i) => (
                <img 
                 key={i}
-                src={`https://picsum.photos/100/100?random=${i + 10}`} 
-                alt={`User ${i}`}
-                className="w-10 h-10 rounded-full border-2 border-christmas-red"
+                src={src} 
+                alt={`User ${i + 1}`}
+                className="w-10 h-10 rounded-full border-2 border-christmas-red object-cover"
               />
              ))}
           </div>

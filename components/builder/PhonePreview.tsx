@@ -343,7 +343,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
 
                  {/* Title */}
                  <div className="text-center w-full shrink-0">
-                    <h2 className="text-2xl font-poppins font-bold w-full break-words whitespace-normal leading-tight shadow-sm text-shadow-lg px-2">
+                    <h2 className="text-2xl font-poppins font-bold w-full break-words whitespace-normal leading-tight shadow-sm text-shadow-lg px-2 text-christmas-red">
                       {data.title || "Seu Título Aqui"}
                     </h2>
                  </div>
