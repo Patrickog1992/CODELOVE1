@@ -431,7 +431,8 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
         return (
           <div className="space-y-4">
              <label className="block text-sm font-medium text-gray-700">Escolha uma música especial</label>
-             <div className="space-y-2 h-72 overflow-y-auto pr-2 scrollbar-thin">
+             {/* Alterado para Grid/Lista vertical sem scroll interno fixo, permitindo rolagem da página */}
+             <div className="grid grid-cols-1 gap-2">
                  {MUSIC_OPTIONS.map((track) => {
                      const isSelected = formData.musicUrl === track.url;
                      const isPlaying = playingPreview === track.url;
@@ -440,28 +441,29 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                          <div 
                             key={track.id}
                             onClick={() => handleMusicSelect(track)}
-                            className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${isSelected ? 'bg-red-50 border-christmas-red ring-1 ring-christmas-red' : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50'}`}
+                            // Compactado: p-2, tamanhos reduzidos
+                            className={`flex items-center justify-between p-2 rounded-lg border transition-all cursor-pointer ${isSelected ? 'bg-red-50 border-christmas-red ring-1 ring-christmas-red' : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50'}`}
                          >
-                            <div className="flex items-center gap-3">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isSelected ? 'bg-christmas-red text-white' : 'bg-gray-100 text-gray-400'}`}>
+                            <div className="flex items-center gap-2">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isSelected ? 'bg-christmas-red text-white' : 'bg-gray-100 text-gray-400'}`}>
                                     <Music className="w-4 h-4" />
                                 </div>
-                                <div>
-                                    <p className={`text-sm font-semibold ${isSelected ? 'text-christmas-darkRed' : 'text-gray-700'}`}>
+                                <div className="min-w-0">
+                                    <p className={`text-sm font-semibold truncate ${isSelected ? 'text-christmas-darkRed' : 'text-gray-700'}`}>
                                         {track.name}
                                     </p>
                                     <p className="text-[10px] text-gray-400">Faixa {track.id}</p>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 shrink-0">
                                 <button 
                                     onClick={(e) => togglePreview(track.url, e)}
-                                    className="p-2 rounded-full hover:bg-black/5 text-gray-500 transition-colors"
+                                    className="p-1.5 rounded-full hover:bg-black/5 text-gray-500 transition-colors"
                                 >
-                                    {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current" />}
+                                    {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
                                 </button>
-                                {isSelected && <CheckCircle className="w-5 h-5 text-christmas-red" />}
+                                {isSelected && <CheckCircle className="w-4 h-4 text-christmas-red" />}
                             </div>
                          </div>
                      )
