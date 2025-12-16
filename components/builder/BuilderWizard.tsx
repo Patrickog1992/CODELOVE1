@@ -13,7 +13,7 @@ const steps = [
   { title: 'Mensagem', description: 'Escreva uma mensagem especial. Seja criativo e demonstre todo seu carinho.' },
   { title: 'Data de início', description: 'Informe a data de início que simbolize o início de uma união, relacionamento, amizade, etc.' },
   { title: 'Fotos do Casal', description: 'Personalize com fotos especiais. Escolha da galeria ou envie do seu celular.' },
-  { title: 'Música dedicada', description: 'Escolha a trilha sonora perfeita para o momento.' },
+  { title: 'Música (YouTube)', description: 'Cole um link do YouTube para tocar na página.' },
   { title: 'Animação de fundo', description: 'Escolha uma animação de fundo para a página.' },
   { title: 'Informações de contato', description: 'Preencha as informações de contato para receber o link e o QR Code.' },
   { title: 'Escolha seu plano', description: 'Selecione o plano que melhor atende às suas necessidades.' },
@@ -36,7 +36,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
   const [formData, setFormData] = useState<BuilderData>({
     title: '',
     message: '',
-    date: '',
+    date: '', // Will be stored as YYYY-MM-DD
     photos: [],
     photoMode: 'coverflow',
     music: '',
@@ -45,6 +45,17 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     email: '',
     selectedPlan: null
   });
+
+  // Date Component State
+  const [dateParts, setDateParts] = useState({ day: '', month: '', year: '' });
+
+  // Update formData.date whenever parts change
+  useEffect(() => {
+    if (dateParts.day && dateParts.month && dateParts.year) {
+        const isoDate = `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
+        setFormData(prev => ({ ...prev, date: isoDate }));
+    }
+  }, [dateParts]);
 
   const [youtubeUrl, setYoutubeUrl] = useState('');
 
@@ -73,18 +84,20 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     setIsGenerating(true);
     
     setTimeout(() => {
-        const fullExportData = {
-            title: formData.title,
-            message: formData.message,
-            date: formData.date,
-            music: formData.music,
-            musicUrl: formData.musicUrl,
-            background: formData.background,
-            photoMode: formData.photoMode,
-            photos: formData.photos
+        // COMPRESSION: Map long keys to short keys to save URL space
+        const compressedData = {
+            t: formData.title,
+            m: formData.message,
+            d: formData.date,
+            mu: formData.music,      // Music Name (Label)
+            muu: formData.musicUrl,  // Music URL
+            bg: formData.background,
+            pm: formData.photoMode,
+            p: formData.photos       // Photos Array
         };
 
-        const jsonString = JSON.stringify(fullExportData);
+        const jsonString = JSON.stringify(compressedData);
+        // Use standard btoa with URIComponent encoding for UTF-8 support
         const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
         
         const origin = window.location.origin;
@@ -97,8 +110,8 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
         let qrCodeData = uniqueUrl;
         let warning = undefined;
 
-        if (uniqueUrl.length > 3000) {
-            warning = "Atenção: O link ficou muito longo! O QR Code pode demorar para ler. Use menos fotos ou fotos da galeria para otimizar.";
+        if (uniqueUrl.length > 2000) {
+            warning = "Atenção: O link ficou longo. Algumas fotos podem não aparecer em leitores de QR antigos. Recomendamos usar menos fotos ou fotos da galeria.";
         }
 
         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrCodeData)}&color=D42426&bgcolor=ffffff&margin=10`;
@@ -116,13 +129,24 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleYoutubeMusic = () => {
-    if(!youtubeUrl) return;
-    setFormData(prev => ({
-        ...prev,
-        music: "YouTube Music",
-        musicUrl: youtubeUrl
-    }));
+  const handleYoutubeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const url = e.target.value;
+      setYoutubeUrl(url);
+      
+      // Auto-update form data strictly for YouTube
+      if (url.trim().length > 0) {
+        setFormData(prev => ({
+            ...prev,
+            music: "YouTube Music",
+            musicUrl: url
+        }));
+      } else {
+        setFormData(prev => ({
+            ...prev,
+            music: "",
+            musicUrl: ""
+        }));
+      }
   };
 
   // --- PHOTO LOGIC ---
@@ -200,7 +224,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                                 return { ...prev, photos: [...prev.photos, url] };
                             });
                         }
-                        // Stop loading when closed (event queues are complex, assume opened)
                     }
                 );
                 widget.open();
@@ -211,7 +234,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
             }
         } else {
             if (retries < 5) {
-                setTimeout(() => checkAndOpen(retries + 1), 500); // Retry every 500ms
+                setTimeout(() => checkAndOpen(retries + 1), 500);
             } else {
                 alert("Erro de conexão. O componente de upload não carregou.");
                 setIsLoadingWidget(false);
@@ -251,19 +274,48 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
             <div className="text-right text-xs text-gray-400">{formData.message.length}/500</div>
           </div>
         );
-      case 2: // Date - Fixed Overflow
+      case 2: // Date - Custom Selectors (NO SCROLL BUG)
         return (
-          <div className="space-y-4 max-w-full overflow-hidden">
-            <label className="block text-sm font-medium text-gray-700">Data</label>
-            <div className="w-full relative">
-                <input
-                type="date"
-                value={formData.date}
-                onChange={(e) => updateField('date', e.target.value)}
-                className="w-full min-w-0 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-christmas-red outline-none appearance-none bg-white block"
-                />
+          <div className="space-y-4">
+            <label className="block text-sm font-medium text-gray-700">Data de Início</label>
+            <div className="flex gap-2">
+                {/* Day */}
+                <select 
+                    className="w-1/3 px-3 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-christmas-red outline-none bg-white text-sm"
+                    value={dateParts.day}
+                    onChange={(e) => setDateParts({...dateParts, day: e.target.value})}
+                >
+                    <option value="">Dia</option>
+                    {Array.from({length: 31}, (_, i) => i + 1).map(d => (
+                        <option key={d} value={d.toString().padStart(2, '0')}>{d}</option>
+                    ))}
+                </select>
+
+                {/* Month */}
+                <select 
+                    className="w-1/3 px-3 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-christmas-red outline-none bg-white text-sm"
+                    value={dateParts.month}
+                    onChange={(e) => setDateParts({...dateParts, month: e.target.value})}
+                >
+                    <option value="">Mês</option>
+                    {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map((m, i) => (
+                        <option key={i} value={(i + 1).toString().padStart(2, '0')}>{m}</option>
+                    ))}
+                </select>
+
+                {/* Year */}
+                <select 
+                    className="w-1/3 px-3 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-christmas-red outline-none bg-white text-sm"
+                    value={dateParts.year}
+                    onChange={(e) => setDateParts({...dateParts, year: e.target.value})}
+                >
+                    <option value="">Ano</option>
+                    {Array.from({length: 60}, (_, i) => new Date().getFullYear() - i).map(y => (
+                        <option key={y} value={y}>{y}</option>
+                    ))}
+                </select>
             </div>
-            <p className="text-xs text-gray-500">Selecione a data especial do início da relação.</p>
+            <p className="text-xs text-gray-500">Selecione o dia, mês e ano.</p>
           </div>
         );
       case 3: // Photos (Updated)
@@ -396,36 +448,30 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
           <div className="space-y-6">
              <label className="block text-sm font-medium text-gray-700">Música de Fundo</label>
 
-             {/* Youtube Input */}
+             {/* Youtube Input ONLY */}
              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
                 <label className="block text-xs font-bold text-gray-700 mb-2 flex items-center gap-1">
                     <Youtube className="w-4 h-4 text-red-600" />
-                    YouTube (Link do Vídeo)
+                    Link do YouTube
                 </label>
                 <div className="flex gap-2">
                     <input 
                         type="text"
                         placeholder="Cole o link do YouTube aqui..."
                         value={youtubeUrl}
-                        onChange={(e) => setYoutubeUrl(e.target.value)}
+                        onChange={handleYoutubeChange}
                         className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-christmas-red outline-none"
                     />
-                    <button 
-                        onClick={handleYoutubeMusic}
-                        className="bg-red-600 text-white px-4 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
-                    >
-                        Usar
-                    </button>
                 </div>
                 <p className="text-[10px] text-gray-500 mt-2">
-                    O áudio do vídeo tocará no celular. Certifique-se de que o vídeo permite reprodução externa.
+                    Cole o link de qualquer vídeo do YouTube. O áudio tocará no celular.
                 </p>
              </div>
              
-             {formData.musicUrl && formData.music === "YouTube Music" && (
-                 <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
+             {formData.musicUrl && (
+                 <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100 animate-in fade-in">
                      <CheckCircle className="w-4 h-4" />
-                     <span className="truncate">Música selecionada com sucesso!</span>
+                     <span className="truncate">Vídeo reconhecido!</span>
                  </div>
              )}
           </div>
@@ -531,7 +577,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
 
   // SUCCESS SCREEN
   if (generatedResult) {
-      // ... same success screen code
+      // ... same success screen code ...
       const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
       return (
@@ -542,8 +588,21 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                  <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#D42426 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
                  <motion.div 
                    initial={{ opacity: 0, scale: 0.8, y: 50 }}
-                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                   transition={{ duration: 0.8, type: "spring" }}
+                   animate={{ 
+                       opacity: 1, 
+                       scale: 1, 
+                       y: [0, -15, 0] // Floating animation
+                   }}
+                   transition={{ 
+                       opacity: { duration: 0.8, ease: "easeOut" },
+                       scale: { duration: 0.8, ease: "easeOut" },
+                       y: { 
+                          duration: 6, 
+                          repeat: Infinity, 
+                          ease: "easeInOut",
+                          times: [0, 0.5, 1] 
+                       }
+                   }}
                  >
                     <PhonePreview data={formData} />
                  </motion.div>
@@ -599,13 +658,12 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
 
                          {/* Actions */}
                          <div className="space-y-3 w-full">
-                             <div className="flex gap-2">
-                                 <div className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-600 truncate text-left font-mono">
-                                     Link do Presente
+                             <div className="flex gap-2 cursor-pointer group" onClick={() => navigator.clipboard.writeText(generatedResult.url)}>
+                                 <div className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs md:text-sm font-bold text-christmas-red truncate text-left font-mono uppercase tracking-wide group-hover:bg-red-50 transition-colors flex items-center">
+                                     CLIQUE E COPIE O LINK DO PRESENTE
                                  </div>
                                  <button 
-                                    onClick={() => navigator.clipboard.writeText(generatedResult.url)}
-                                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 rounded-xl flex items-center justify-center transition-colors active:bg-green-100 active:text-green-700"
+                                    className="bg-gray-100 group-hover:bg-red-100 text-gray-700 group-hover:text-red-700 px-4 rounded-xl flex items-center justify-center transition-all active:scale-95"
                                     title="Copiar Link"
                                  >
                                      <Copy className="w-5 h-5" />

@@ -25,8 +25,21 @@ function App() {
       try {
         // Decode: Base64 -> URI Component -> JSON
         const jsonString = decodeURIComponent(escape(atob(giftParam)));
-        const parsedData = JSON.parse(jsonString);
-        setGiftData(parsedData);
+        const parsed = JSON.parse(jsonString);
+
+        // Decompress Data (Support short keys for URL size optimization)
+        const reconstructedData: Partial<BuilderData> = {
+            title: parsed.t || parsed.title,
+            message: parsed.m || parsed.message,
+            date: parsed.d || parsed.date,
+            music: parsed.mu || parsed.music,
+            musicUrl: parsed.muu || parsed.musicUrl,
+            background: parsed.bg || parsed.background,
+            photoMode: parsed.pm || parsed.photoMode,
+            photos: parsed.p || parsed.photos
+        };
+
+        setGiftData(reconstructedData);
       } catch (e) {
         console.error("Error parsing gift data", e);
       }
