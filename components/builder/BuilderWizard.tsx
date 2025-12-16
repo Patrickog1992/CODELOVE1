@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Upload, Music, Check, X, Trash2, Search, PlayCircle, Loader2, Copy, Share2, Download, CheckCircle, AlertTriangle, Info, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Upload, Music, Check, X, Trash2, Search, PlayCircle, Loader2, Copy, Share2, Download, CheckCircle, AlertTriangle, Info, Image as ImageIcon, Link as LinkIcon, Camera } from 'lucide-react';
 import { BuilderData, PhotoMode, BackgroundType } from '../../types';
 import { PhonePreview } from './PhonePreview';
 
@@ -57,12 +57,11 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
   // Photo Input State
   const [photoInputMode, setPhotoInputMode] = useState<'gallery' | 'url' | 'upload'>('gallery');
   const [customPhotoUrl, setCustomPhotoUrl] = useState('');
+  const [isValidatingUrl, setIsValidatingUrl] = useState(false);
 
   // State for Generation Process
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedResult, setGeneratedResult] = useState<{ url: string; qrCodeUrl: string; warning?: string } | null>(null);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -105,11 +104,8 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
         let qrCodeData = uniqueUrl;
         let warning = undefined;
 
-        if (uniqueUrl.length > 2500) {
-            // Fallback: Link is too long for QR Code. 
-            // We generate a QR code for the homepage but with a warning, or a shortened version if we had a backend.
-            // Since we don't, we warn the user.
-            warning = "Atenção: Você usou muitas fotos ou textos longos. O QR Code pode ficar difícil de ler. O LINK enviado funcionará perfeitamente!";
+        if (uniqueUrl.length > 3000) {
+            warning = "Atenção: O link ficou muito longo! O QR Code pode demorar para ler. Use menos fotos ou fotos da galeria para otimizar.";
         }
 
         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrCodeData)}&color=D42426&bgcolor=ffffff&margin=10`;
@@ -149,76 +145,102 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
 
   const addCustomUrl = () => {
       if (!customPhotoUrl) return;
+      
+      // BLOCK INSTAGRAM LINKS
+      if (customPhotoUrl.includes('instagram.com')) {
+          alert("⚠️ Links do Instagram não funcionam!\n\nO Instagram bloqueia o acesso externo às fotos. Por favor, use a opção 'Enviar Fotos' para carregar a imagem do seu celular.");
+          return;
+      }
+
       if (formData.photos.length >= 8) return;
-      updateField('photos', [...formData.photos, customPhotoUrl]);
-      setCustomPhotoUrl('');
-  };
 
-  // Image Compression Utility
-  const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.src = URL.createObjectURL(file);
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            // Max dimensions (resize to thumbnails to fit in URL)
-            const MAX_WIDTH = 400;
-            const MAX_HEIGHT = 400;
-            let width = img.width;
-            let height = img.height;
+      setIsValidatingUrl(true);
 
-            if (width > height) {
-                if (width > MAX_WIDTH) {
-                    height *= MAX_WIDTH / width;
-                    width = MAX_WIDTH;
-                }
-            } else {
-                if (height > MAX_HEIGHT) {
-                    width *= MAX_HEIGHT / height;
-                    height = MAX_HEIGHT;
-                }
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            
-            // Draw resized image
-            ctx?.drawImage(img, 0, 0, width, height);
-            
-            // Compress to JPEG with 0.6 quality
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-            resolve(dataUrl);
-        };
-    });
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    // Process files with compression
-    const newPhotos: string[] = [];
-    
-    for (let i = 0; i < files.length; i++) {
-        if (formData.photos.length + newPhotos.length >= 8) break;
-        try {
-            const compressed = await compressImage(files[i]);
-            newPhotos.push(compressed);
-        } catch (err) {
-            console.error("Erro ao comprimir imagem", err);
-        }
-    }
-
-    updateField('photos', [...formData.photos, ...newPhotos]);
-    e.target.value = '';
+      // Validate Image
+      const img = new Image();
+      img.onload = () => {
+           setIsValidatingUrl(false);
+           updateField('photos', [...formData.photos, customPhotoUrl]);
+           setCustomPhotoUrl('');
+      };
+      img.onerror = () => {
+          setIsValidatingUrl(false);
+          alert("❌ Não conseguimos carregar essa imagem.\n\nVerifique se:\n1. O link é direto (termina em .jpg, .png)\n2. O link é público\n3. O site permite acesso externo");
+      };
+      img.src = customPhotoUrl;
   };
 
   const removePhoto = (index: number) => {
     const newPhotos = [...formData.photos];
     newPhotos.splice(index, 1);
     updateField('photos', newPhotos);
+  };
+
+  // CLOUDINARY WIDGET INTEGRATION
+  const openCloudinaryWidget = () => {
+    if (formData.photos.length >= 8) {
+        alert("Você já atingiu o limite de 8 fotos!");
+        return;
+    }
+
+    const cloudName = "dzi28teuq";
+    const uploadPreset = "natal-upload";
+
+    // @ts-ignore
+    if (!window.cloudinary) {
+        alert("Carregando sistema de upload... aguarde 2 segundos e tente novamente.");
+        return;
+    }
+
+    // @ts-ignore
+    const widget = window.cloudinary.createUploadWidget(
+      {
+        cloudName: cloudName,
+        uploadPreset: uploadPreset,
+        multiple: true,
+        maxFiles: 8 - formData.photos.length,
+        sources: ["local", "camera"],
+        folder: "presentes-natal",
+        clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+        language: "pt",
+        text: {
+           "pt": {
+             "menu": { "files": "Meus Arquivos" },
+             "local": { "browse": "Selecionar Fotos" },
+             "or": "Ou"
+           }
+        },
+        styles: {
+            palette: {
+                window: "#FFFFFF",
+                windowBorder: "#90A0B3",
+                tabIcon: "#D42426",
+                menuIcons: "#5A616A",
+                textDark: "#000000",
+                textLight: "#FFFFFF",
+                link: "#D42426",
+                action: "#D42426",
+                inactiveTabIcon: "#0E2F5A",
+                error: "#F44235",
+                inProgress: "#D42426",
+                complete: "#20B832",
+                sourceBg: "#E4EBF1"
+            }
+        }
+      },
+      (error: any, result: any) => {
+        if (!error && result && result.event === "success") {
+          const url = result.info.secure_url;
+          // Add to state if not duplicate
+          setFormData(prev => {
+             if (prev.photos.includes(url)) return prev;
+             return { ...prev, photos: [...prev.photos, url] };
+          });
+        }
+      }
+    );
+
+    widget.open();
   };
 
   const renderStepContent = () => {
@@ -262,7 +284,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
             />
           </div>
         );
-      case 3: // Photos (Updated for Custom Photos)
+      case 3: // Photos (Updated for Cloudinary)
         return (
           <div className="space-y-6">
             
@@ -278,13 +300,13 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                     onClick={() => setPhotoInputMode('upload')}
                     className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${photoInputMode === 'upload' ? 'bg-white text-christmas-red shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                 >
-                    Seu Celular
+                    Enviar Fotos
                 </button>
                 <button 
                     onClick={() => setPhotoInputMode('url')}
                     className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${photoInputMode === 'url' ? 'bg-white text-christmas-red shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                 >
-                    Link (URL)
+                    Link
                 </button>
             </div>
 
@@ -316,10 +338,10 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
             {/* URL Content */}
             {photoInputMode === 'url' && (
                 <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
-                    <div className="bg-green-50 p-3 rounded-lg text-xs text-green-700 border border-green-100 flex gap-2">
-                        <CheckCircle className="w-4 h-4 shrink-0" />
+                    <div className="bg-green-50 p-3 rounded-lg text-xs text-green-700 border border-green-100 flex gap-2 items-start">
+                        <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
                         <div>
-                            <strong>Melhor opção para QR Code:</strong> Cole o link de uma foto sua que já está na internet (Facebook, Instagram público, Imgur). O QR Code fica leve e rápido!
+                            <strong>Dica Importante:</strong> Links do Instagram/Facebook NÃO funcionam aqui.<br/>Use a aba "Enviar Fotos" para carregar direto do celular.
                         </div>
                     </div>
                     <div className="flex gap-2">
@@ -328,42 +350,42 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                             value={customPhotoUrl}
                             onChange={(e) => setCustomPhotoUrl(e.target.value)}
                             placeholder="https://..."
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-christmas-red outline-none"
+                            disabled={isValidatingUrl}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-christmas-red outline-none disabled:bg-gray-100"
                         />
                         <button 
                             onClick={addCustomUrl}
-                            className="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-black transition-colors"
+                            disabled={isValidatingUrl || !customPhotoUrl}
+                            className="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
-                            Adicionar
+                            {isValidatingUrl ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Adicionar'}
                         </button>
                     </div>
                 </div>
             )}
 
-            {/* Upload Content */}
+            {/* Upload Content (Cloudinary) */}
             {photoInputMode === 'upload' && (
                 <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
-                    <div className="bg-orange-50 p-3 rounded-lg text-xs text-orange-700 border border-orange-100 flex gap-2">
-                        <Info className="w-4 h-4 shrink-0" />
-                        <div>
-                            <strong>Compressão Automática:</strong> Para caber no link, vamos diminuir um pouco a qualidade da sua foto. Se o QR Code não ler, tente usar a opção "Link (URL)".
-                        </div>
+                    <div className="bg-christmas-snow p-4 rounded-xl border border-red-100 text-center space-y-3">
+                         <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto shadow-sm text-christmas-red">
+                             <Camera className="w-6 h-6" />
+                         </div>
+                         <div>
+                             <h4 className="font-bold text-gray-900 text-sm">Upload Inteligente</h4>
+                             <p className="text-xs text-gray-500 mt-1 max-w-[250px] mx-auto">
+                                Suas fotos serão otimizadas automaticamente para garantir que o QR Code funcione perfeitamente.
+                             </p>
+                         </div>
+                         
+                        <button 
+                          onClick={openCloudinaryWidget}
+                          className="w-full py-3 bg-gradient-to-r from-christmas-red to-[#ff8fa3] text-white rounded-xl font-bold shadow-lg shadow-red-200 hover:shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                        >
+                            <Upload className="w-5 h-5" />
+                            Enviar fotos do celular
+                        </button>
                     </div>
-                    <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        onChange={handleFileChange} 
-                        className="hidden" 
-                        multiple 
-                        accept="image/*"
-                    />
-                    <button 
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full py-6 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 text-sm hover:border-christmas-red hover:text-christmas-red hover:bg-red-50 transition-all flex flex-col items-center gap-2"
-                    >
-                        <Upload className="w-6 h-6" />
-                        Toque para escolher do celular
-                    </button>
                 </div>
             )}
             
