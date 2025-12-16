@@ -67,7 +67,8 @@ export const GiftViewer: React.FC<GiftViewerProps> = ({ data }) => {
         </div>
 
         <div className="transform scale-100 sm:scale-105 transition-transform duration-500">
-           <PhonePreview data={fullData} />
+           {/* Pass autoPlay=true to start music immediately */}
+           <PhonePreview data={fullData} autoPlay={true} />
         </div>
 
         <div className="mt-8 text-center text-white/60 text-xs">

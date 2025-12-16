@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Play, Pause, Volume2, Music } from 'lucide-r
 
 interface PhonePreviewProps {
   data: BuilderData;
+  autoPlay?: boolean;
 }
 
 // Helper to extract YouTube ID
@@ -16,40 +17,64 @@ const getYoutubeId = (url: string) => {
     return (match && match[2].length === 11) ? match[2] : null;
 };
 
-export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
+export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = false }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(autoPlay);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
 
   const youtubeId = getYoutubeId(data.musicUrl || '');
   const isYoutube = !!youtubeId;
 
-  // Effect to control YouTube iframe via postMessage when isPlaying changes
+  // Handle autoPlay prop changes
   useEffect(() => {
-    if (!isYoutube || !iframeRef.current) return;
+    if (autoPlay) {
+        setIsPlaying(true);
+    }
+  }, [autoPlay]);
 
-    const command = isPlaying ? 'playVideo' : 'pauseVideo';
-    try {
-        iframeRef.current.contentWindow?.postMessage(JSON.stringify({
+  // Reliable YouTube Control Function
+  const sendYoutubeCommand = (command: 'playVideo' | 'pauseVideo') => {
+      if (!iframeRef.current || !iframeRef.current.contentWindow) return;
+      try {
+        iframeRef.current.contentWindow.postMessage(JSON.stringify({
             event: 'command',
             func: command,
             args: []
         }), '*');
-    } catch(e) {
-        console.warn("YouTube control error", e);
+      } catch (e) {
+        console.error("YouTube command failed", e);
+      }
+  };
+
+  // Effect to control YouTube iframe via postMessage when isPlaying changes
+  useEffect(() => {
+    if (!isYoutube) return;
+    
+    // Only send command if iframe is believed to be ready (or try anyway)
+    const command = isPlaying ? 'playVideo' : 'pauseVideo';
+    sendYoutubeCommand(command);
+    
+    // Retry logic for initial load race conditions
+    if (isPlaying) {
+        const timer = setTimeout(() => sendYoutubeCommand('playVideo'), 1000);
+        return () => clearTimeout(timer);
     }
-  }, [isPlaying, isYoutube]);
+  }, [isPlaying, isYoutube, iframeLoaded]);
 
   // Effect to control standard Audio when isPlaying changes
   useEffect(() => {
       if (isYoutube || !audioRef.current) return;
 
       if (isPlaying) {
-          audioRef.current.play().catch(e => {
-              console.log("Interaction required for audio", e);
-              setIsPlaying(false);
-          });
+          const playPromise = audioRef.current.play();
+          if (playPromise !== undefined) {
+              playPromise.catch(e => {
+                  console.log("Auto-play prevented (browser policy):", e);
+                  setIsPlaying(false);
+              });
+          }
       } else {
           audioRef.current.pause();
       }
@@ -199,10 +224,9 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
                     animate="center"
                     exit="exit"
                     transition={{ 
-                        type: 'spring', 
-                        stiffness: 400, // Higher stiffness = Snappier
-                        damping: 30,    // Lower damping = Less friction
-                        mass: 0.8
+                        type: 'tween', 
+                        duration: 0.25, // FAST transition
+                        ease: 'easeInOut'
                     }}
                     className="w-full h-full rounded-lg overflow-hidden shadow-2xl bg-gray-200 absolute top-0 left-0"
                     style={{ transformStyle: 'preserve-3d', backfaceVisibility: 'hidden' }}
@@ -281,9 +305,13 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
         <div className="hidden">
             <iframe 
                 ref={iframeRef}
+                onLoad={() => {
+                    setIframeLoaded(true);
+                    if (isPlaying) sendYoutubeCommand('playVideo');
+                }}
                 width="1" 
                 height="1" 
-                src={`https://www.youtube.com/embed/${youtubeId}?enablejsapi=1&controls=0&loop=1&playlist=${youtubeId}&autoplay=0&playsinline=1`} 
+                src={`https://www.youtube.com/embed/${youtubeId}?enablejsapi=1&controls=0&loop=1&playlist=${youtubeId}&autoplay=${isPlaying ? 1 : 0}&playsinline=1`} 
                 title="YouTube Audio Player" 
                 allow="autoplay; encrypted-media"
                 loading="eager"
@@ -302,7 +330,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
         <div className="rounded-[2rem] overflow-hidden w-full h-full bg-white relative flex flex-col">
           
           {/* Background Base Layer (Always the active photo, blurred) */}
-          <div className="absolute inset-0 bg-cover bg-center z-0 transition-all duration-700" 
+          <div className="absolute inset-0 bg-cover bg-center z-0 transition-all duration-200" 
                style={{ 
                  backgroundImage: `url(${photos[currentPhotoIndex]})`,
                  // We blur the background image so text is readable
