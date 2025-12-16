@@ -7,25 +7,25 @@ const testimonials: Testimonial[] = [
     name: "Mariana e João",
     time: "1 mês atrás",
     text: "Foi o presente de Natal mais emocionante que já dei. Ele chorou quando escaneou o QR Code!",
-    avatar: "https://picsum.photos/100/100?random=101"
+    avatar: "https://i.imgur.com/73dp13S.jpg"
   },
   {
     name: "Ana e Pedro",
     time: "2 dias atrás",
     text: "Transformou nosso Natal. Simplesmente perfeito!",
-    avatar: "https://picsum.photos/100/100?random=102"
+    avatar: "https://i.imgur.com/pO7c6ZD.jpg"
   },
   {
     name: "Lucas e Carol",
     time: "3 meses atrás",
     text: "Uma surpresa linda e inesquecível.",
-    avatar: "https://picsum.photos/100/100?random=103"
+    avatar: "https://i.imgur.com/6hNipoh.jpg"
   },
   {
     name: "Camila e Felipe",
     time: "4 meses atrás",
     text: "Nunca imaginei um presente digital tão emocionante.",
-    avatar: "https://picsum.photos/100/100?random=104"
+    avatar: "https://i.imgur.com/73dp13S.jpg" // Reusing the first one to keep style consistent
   }
 ];
 
@@ -53,7 +53,7 @@ export const Testimonials: React.FC = () => {
               <p className="text-gray-700 font-medium mb-6 italic">"{testimonial.text}"</p>
               
               <div className="flex items-center gap-3">
-                <img src={testimonial.avatar} alt={testimonial.name} className="w-10 h-10 rounded-full object-cover" />
+                <img src={testimonial.avatar} alt={testimonial.name} className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" />
                 <div>
                   <h4 className="font-bold text-sm text-gray-900">{testimonial.name}</h4>
                   <span className="text-xs text-gray-500">{testimonial.time}</span>
