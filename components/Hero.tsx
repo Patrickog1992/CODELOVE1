@@ -9,7 +9,7 @@ interface HeroProps {
 
 export const Hero: React.FC<HeroProps> = ({ onOpenBuilder }) => {
   return (
-    <section className="relative w-full overflow-hidden bg-gradient-to-b from-christmas-darkRed to-christmas-red text-white pt-24 pb-32">
+    <section className="relative w-full overflow-hidden bg-gradient-to-b from-christmas-darkRed to-christmas-red text-white pt-36 pb-32">
       <SnowEffect />
       
       <div className="container mx-auto px-4 relative z-10 flex flex-col items-center text-center">

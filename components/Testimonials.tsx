@@ -53,7 +53,12 @@ export const Testimonials: React.FC = () => {
               <p className="text-gray-700 font-medium mb-6 italic">"{testimonial.text}"</p>
               
               <div className="flex items-center gap-3">
-                <img src={testimonial.avatar} alt={testimonial.name} className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" />
+                <img 
+                    src={testimonial.avatar} 
+                    alt={testimonial.name} 
+                    loading="lazy"
+                    className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" 
+                />
                 <div>
                   <h4 className="font-bold text-sm text-gray-900">{testimonial.name}</h4>
                   <span className="text-xs text-gray-500">{testimonial.time}</span>
@@ -67,7 +72,7 @@ export const Testimonials: React.FC = () => {
           <div className="flex -space-x-2">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                   <div key={i} className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white overflow-hidden">
-                      <img src={`https://picsum.photos/50/50?random=${i+200}`} className="w-full h-full object-cover" alt="" />
+                      <img src={`https://picsum.photos/50/50?random=${i+200}`} loading="lazy" className="w-full h-full object-cover" alt="" />
                   </div>
               ))}
           </div>

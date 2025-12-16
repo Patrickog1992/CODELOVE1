@@ -9,6 +9,14 @@ const CAROUSEL_IMAGES = [
 export const MockupSection: React.FC = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // Preload Images for instant transition
+  useEffect(() => {
+    CAROUSEL_IMAGES.forEach((src) => {
+        const img = new Image();
+        img.src = src;
+    });
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) => (prev + 1) % CAROUSEL_IMAGES.length);

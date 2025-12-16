@@ -1,13 +1,41 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { BuilderData } from '../../types';
 import { SnowEffect } from '../SnowEffect';
-import { motion, AnimatePresence, PanInfo } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Play, Pause, Volume2, Music } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronLeft, ChevronRight, Play, Pause, Loader2 } from 'lucide-react';
 
 interface PhonePreviewProps {
   data: BuilderData;
   autoPlay?: boolean;
 }
+
+// Internal component to handle image loading gracefully
+const OptimizedImage = ({ src, className, style }: { src: string, className?: string, style?: React.CSSProperties }) => {
+    const [isLoaded, setIsLoaded] = useState(false);
+    
+    // Reset loaded state when src changes
+    useEffect(() => {
+        setIsLoaded(false);
+        const img = new Image();
+        img.src = src;
+        img.onload = () => setIsLoaded(true);
+    }, [src]);
+
+    return (
+        <div className={`relative overflow-hidden ${className}`} style={style}>
+            {!isLoaded && (
+                <div className="absolute inset-0 bg-gray-200 flex items-center justify-center animate-pulse z-10">
+                    <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+                </div>
+            )}
+            <motion.img 
+                src={src} 
+                className={`w-full h-full object-cover pointer-events-none transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+                alt="Memory" 
+            />
+        </div>
+    );
+};
 
 // Helper to extract YouTube ID
 const getYoutubeId = (url: string) => {
@@ -52,11 +80,9 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
   useEffect(() => {
     if (!isYoutube) return;
     
-    // Only send command if iframe is believed to be ready (or try anyway)
     const command = isPlaying ? 'playVideo' : 'pauseVideo';
     sendYoutubeCommand(command);
     
-    // Retry logic for initial load race conditions
     if (isPlaying) {
         const timer = setTimeout(() => sendYoutubeCommand('playVideo'), 1000);
         return () => clearTimeout(timer);
@@ -89,6 +115,15 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
   // Handle Photo Navigation
   const photos = data.photos && data.photos.length > 0 ? data.photos : ['https://images.unsplash.com/photo-1543589077-47d81606c1bf?w=500&q=80'];
   
+  // Preload next image for smoother transition
+  useEffect(() => {
+      if (photos.length > 1) {
+          const nextIndex = (currentPhotoIndex + 1) % photos.length;
+          const img = new Image();
+          img.src = photos[nextIndex];
+      }
+  }, [currentPhotoIndex, photos]);
+  
   const nextPhoto = () => {
     setCurrentPhotoIndex((prev) => (prev + 1) % photos.length);
   };
@@ -103,7 +138,6 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
       case 'hearts':
         return (
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
-             {/* Generate fixed hearts with robust animation */}
              {[...Array(15)].map((_, i) => (
                <div key={i} className="absolute text-red-500 animate-heart-rain" style={{
                  left: `${(i * 7) + Math.random() * 5}%`,
@@ -119,7 +153,6 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
       case 'stars_comets':
         return (
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
-            {/* Transparent overlay to make stars pop slightly */}
             <div className="absolute inset-0 bg-black/40 mix-blend-multiply"></div> 
             {[...Array(5)].map((_, i) => (
               <div key={i} className="absolute h-1 w-32 bg-gradient-to-r from-transparent via-white to-transparent animate-comet shadow-[0_0_10px_rgba(255,255,255,0.8)]" style={{
@@ -166,7 +199,6 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
       case 'clouds':
         return (
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
-             {/* Use CSS gradients to simulate clouds moving if image fails, or reliable SVG data uri */}
              <div className="absolute inset-0 animate-cloud-scroll" 
                   style={{ 
                     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 560 200' preserveAspectRatio='xMidYMid slice'%3E%3Cpath d='M112.5 70c-26 0-47.5 21-47.5 47s21.5 47 47.5 47c6 0 11.5-1.5 16.5-4 5 16.5 20.5 29 38.5 29 22 0 40-18 40-40 0-3-.5-6-1.5-8.5 3-1 6-1.5 9-1.5 16.5 0 30-13.5 30-30 0-14.5-10.5-26.5-24.5-29-2.5-19.5-19-34.5-39-34.5-16.5 0-30.5 10.5-36 25-5.5-1-11-1.5-16.5-1.5-2.5 0-5 .5-7.5 1z' fill='white' fill-opacity='0.5'/%3E%3Cpath d='M392.5 50c-33 0-60 27-60 60s27 60 60 60c7.5 0 14.5-1.5 21-4.5 6.5 21 26 36.5 49 36.5 27.5 0 50-22.5 50-50 0-4-1-8-2-11.5 4-1 8-2 12-2 22 0 40-18 40-40 0-19.5-14-35.5-32.5-39-3-24.5-24-43.5-49.5-43.5-20.5 0-38.5 13-45.5 31.5-6.5-1.5-13.5-2-20.5-2-3 0-6 .5-9.5 1.5z' fill='white' fill-opacity='0.4' transform='translate(-50, 20)'/%3E%3C/svg%3E")`,
@@ -231,7 +263,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
                     className="w-full h-full rounded-lg overflow-hidden shadow-2xl bg-gray-200 absolute top-0 left-0"
                     style={{ transformStyle: 'preserve-3d', backfaceVisibility: 'hidden' }}
                 >
-                    <img src={activePhoto} className="w-full h-full object-cover pointer-events-none" alt="Memory" loading="eager" />
+                    <OptimizedImage src={activePhoto} className="w-full h-full" />
                 </motion.div>
              </AnimatePresence>
 
@@ -333,7 +365,6 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
           <div className="absolute inset-0 bg-cover bg-center z-0 transition-all duration-200" 
                style={{ 
                  backgroundImage: `url(${photos[currentPhotoIndex]})`,
-                 // We blur the background image so text is readable
                  filter: 'brightness(0.5) blur(8px)',
                  transform: 'scale(1.1)'
                }}>

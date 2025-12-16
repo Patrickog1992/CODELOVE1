@@ -30,7 +30,7 @@ const steps = [
 
 export const HowItWorks: React.FC = () => {
   return (
-    <section className="py-20 bg-white">
+    <section className="py-20 bg-white overflow-hidden">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <span className="text-christmas-red font-semibold uppercase tracking-wider text-sm mb-2 block">Como funciona?</span>
@@ -40,7 +40,8 @@ export const HowItWorks: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {/* Steps Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
           {steps.map((step, index) => (
             <div
               key={index}
@@ -58,8 +59,36 @@ export const HowItWorks: React.FC = () => {
           ))}
         </div>
 
-        <div className="text-center mt-12">
-            <p className="text-christmas-green font-medium text-lg">✨ Uma mensagem de Natal que ficará para sempre.</p>
+        {/* Big Feature Section */}
+        <div className="mt-24 flex flex-col md:flex-row items-center justify-center gap-12 max-w-6xl mx-auto">
+            {/* Text Side */}
+            <div className="flex-1 text-center md:text-left relative z-10">
+                <h2 className="text-4xl md:text-6xl font-extrabold text-christmas-darkRed leading-tight mb-6 tracking-tight drop-shadow-sm">
+                  ✨ Uma mensagem de Natal que ficará para sempre.
+                </h2>
+                <p className="text-gray-600 text-xl md:text-2xl font-light">
+                   Surpreenda quem você ama com uma experiência digital única, interativa e emocionante.
+                </p>
+                
+                {/* Decorative arrow pointing to phone on desktop */}
+                <div className="hidden md:block absolute -right-10 top-1/2 w-24 h-24 border-t-2 border-r-2 border-dashed border-red-300 rounded-tr-[50px] -rotate-12 transform translate-x-full"></div>
+            </div>
+
+            {/* Image Side */}
+            <div className="flex-1 flex justify-center md:justify-end relative">
+                {/* Background Glow */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-red-100 to-gold-100 rounded-full blur-3xl opacity-60 transform scale-110"></div>
+                
+                {/* Phone Frame */}
+                <div className="relative border-gray-900 bg-gray-900 border-[12px] rounded-[2.5rem] shadow-2xl overflow-hidden w-[280px] md:w-[300px] transform md:rotate-[-6deg] hover:rotate-0 transition-transform duration-500 z-10">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-[24px] bg-gray-900 rounded-b-xl z-20"></div>
+                    <img 
+                      src="https://i.imgur.com/Ld8I8LR.png" 
+                      alt="App Preview" 
+                      className="w-full h-auto rounded-[2rem] bg-gray-100"
+                    />
+                </div>
+            </div>
         </div>
       </div>
     </section>
