@@ -31,15 +31,6 @@ const PRESET_IMAGES = [
   "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=500&q=80"  // Gift
 ];
 
-// Reliable Audio URLs
-const PRESET_MUSIC = [
-  { name: "Piano Romântico", url: "https://cdn.pixabay.com/download/audio/2022/11/22/audio_febc508520.mp3?filename=christmas-piano-126868.mp3" }, 
-  { name: "Jingle Bells (Piano)", url: "https://cdn.pixabay.com/download/audio/2023/11/17/audio_51d28362d2.mp3" },
-  { name: "We Wish You a Merry Christmas", url: "https://cdn.pixabay.com/download/audio/2022/11/24/audio_9242502b66.mp3" },
-  { name: "Jazz Natalino", url: "https://cdn.pixabay.com/download/audio/2022/12/16/audio_03d6978502.mp3" },
-  { name: "Silent Night (Suave)", url: "https://cdn.pixabay.com/download/audio/2023/11/27/audio_730b2c151c.mp3" }
-];
-
 export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<BuilderData>({
@@ -55,11 +46,11 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     selectedPlan: null
   });
 
-  const [customMusicUrl, setCustomMusicUrl] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
 
   // Photo Input State
   const [photoInputMode, setPhotoInputMode] = useState<'gallery' | 'upload'>('gallery');
+  const [isLoadingWidget, setIsLoadingWidget] = useState(false);
 
   // State for Generation Process
   const [isGenerating, setIsGenerating] = useState(false);
@@ -125,26 +116,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const selectMusic = (music: { name: string, url: string }) => {
-    setFormData(prev => ({
-        ...prev,
-        music: music.name,
-        musicUrl: music.url
-    }));
-    setCustomMusicUrl('');
-    setYoutubeUrl('');
-  };
-
-  const handleCustomMusic = () => {
-      if(!customMusicUrl) return;
-      setFormData(prev => ({
-          ...prev,
-          music: "Música Personalizada",
-          musicUrl: customMusicUrl
-      }));
-      setYoutubeUrl('');
-  };
-
   const handleYoutubeMusic = () => {
     if(!youtubeUrl) return;
     setFormData(prev => ({
@@ -152,7 +123,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
         music: "YouTube Music",
         musicUrl: youtubeUrl
     }));
-    setCustomMusicUrl('');
   };
 
   // --- PHOTO LOGIC ---
@@ -180,64 +150,76 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
         return;
     }
 
-    const cloudName = "dzi28teuq";
-    const uploadPreset = "natal-upload";
+    setIsLoadingWidget(true);
 
-    // @ts-ignore
-    if (!window.cloudinary) {
-        alert("Carregando sistema de upload... aguarde 2 segundos e tente novamente.");
-        return;
-    }
-
-    // @ts-ignore
-    const widget = window.cloudinary.createUploadWidget(
-      {
-        cloudName: cloudName,
-        uploadPreset: uploadPreset,
-        multiple: true,
-        maxFiles: 8 - formData.photos.length,
-        sources: ["local", "camera"],
-        folder: "presentes-natal",
-        clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
-        language: "pt",
-        text: {
-           "pt": {
-             "menu": { "files": "Meus Arquivos" },
-             "local": { "browse": "Selecionar Fotos" },
-             "or": "Ou"
-           }
-        },
-        styles: {
-            palette: {
-                window: "#FFFFFF",
-                windowBorder: "#90A0B3",
-                tabIcon: "#D42426",
-                menuIcons: "#5A616A",
-                textDark: "#000000",
-                textLight: "#FFFFFF",
-                link: "#D42426",
-                action: "#D42426",
-                inactiveTabIcon: "#0E2F5A",
-                error: "#F44235",
-                inProgress: "#D42426",
-                complete: "#20B832",
-                sourceBg: "#E4EBF1"
+    const checkAndOpen = (retries = 0) => {
+        // @ts-ignore
+        if (window.cloudinary) {
+            try {
+                // @ts-ignore
+                const widget = window.cloudinary.createUploadWidget(
+                    {
+                        cloudName: "dzi28teuq",
+                        uploadPreset: "natal-upload",
+                        multiple: true,
+                        maxFiles: 8 - formData.photos.length,
+                        sources: ["local", "camera"],
+                        folder: "presentes-natal",
+                        clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+                        language: "pt",
+                        text: {
+                            "pt": {
+                                "menu": { "files": "Meus Arquivos" },
+                                "local": { "browse": "Selecionar Fotos" },
+                                "or": "Ou"
+                            }
+                        },
+                        styles: {
+                            palette: {
+                                window: "#FFFFFF",
+                                windowBorder: "#90A0B3",
+                                tabIcon: "#D42426",
+                                menuIcons: "#5A616A",
+                                textDark: "#000000",
+                                textLight: "#FFFFFF",
+                                link: "#D42426",
+                                action: "#D42426",
+                                inactiveTabIcon: "#0E2F5A",
+                                error: "#F44235",
+                                inProgress: "#D42426",
+                                complete: "#20B832",
+                                sourceBg: "#E4EBF1"
+                            }
+                        }
+                    },
+                    (error: any, result: any) => {
+                        if (!error && result && result.event === "success") {
+                            const url = result.info.secure_url;
+                            setFormData(prev => {
+                                if (prev.photos.includes(url)) return prev;
+                                return { ...prev, photos: [...prev.photos, url] };
+                            });
+                        }
+                        // Stop loading when closed (event queues are complex, assume opened)
+                    }
+                );
+                widget.open();
+                setIsLoadingWidget(false);
+            } catch (e) {
+                console.error("Widget error", e);
+                setIsLoadingWidget(false);
+            }
+        } else {
+            if (retries < 5) {
+                setTimeout(() => checkAndOpen(retries + 1), 500); // Retry every 500ms
+            } else {
+                alert("Erro de conexão. O componente de upload não carregou.");
+                setIsLoadingWidget(false);
             }
         }
-      },
-      (error: any, result: any) => {
-        if (!error && result && result.event === "success") {
-          const url = result.info.secure_url;
-          // Add to state if not duplicate
-          setFormData(prev => {
-             if (prev.photos.includes(url)) return prev;
-             return { ...prev, photos: [...prev.photos, url] };
-          });
-        }
-      }
-    );
+    };
 
-    widget.open();
+    checkAndOpen();
   };
 
   const renderStepContent = () => {
@@ -269,16 +251,19 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
             <div className="text-right text-xs text-gray-400">{formData.message.length}/500</div>
           </div>
         );
-      case 2: // Date
+      case 2: // Date - Fixed Overflow
         return (
-          <div className="space-y-4">
+          <div className="space-y-4 max-w-full overflow-hidden">
             <label className="block text-sm font-medium text-gray-700">Data</label>
-            <input
-              type="date"
-              value={formData.date}
-              onChange={(e) => updateField('date', e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-christmas-red outline-none"
-            />
+            <div className="w-full relative">
+                <input
+                type="date"
+                value={formData.date}
+                onChange={(e) => updateField('date', e.target.value)}
+                className="w-full min-w-0 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-christmas-red outline-none appearance-none bg-white block"
+                />
+            </div>
+            <p className="text-xs text-gray-500">Selecione a data especial do início da relação.</p>
           </div>
         );
       case 3: // Photos (Updated)
@@ -342,10 +327,20 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                          
                         <button 
                           onClick={openCloudinaryWidget}
-                          className="w-full py-3 bg-gradient-to-r from-christmas-red to-[#ff8fa3] text-white rounded-xl font-bold shadow-lg shadow-red-200 hover:shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                          disabled={isLoadingWidget}
+                          className="w-full py-3 bg-gradient-to-r from-christmas-red to-[#ff8fa3] text-white rounded-xl font-bold shadow-lg shadow-red-200 hover:shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
-                            <Upload className="w-5 h-5" />
-                            Enviar fotos do celular
+                            {isLoadingWidget ? (
+                                <>
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    Carregando...
+                                </>
+                            ) : (
+                                <>
+                                    <Upload className="w-5 h-5" />
+                                    Enviar fotos do celular
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>
@@ -396,40 +391,10 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
             </div>
           </div>
         );
-      case 4: // Music (Updated)
+      case 4: // Music (Strictly YouTube only)
         return (
           <div className="space-y-6">
-             <label className="block text-sm font-medium text-gray-700">Escolha a Música</label>
-             
-             {/* Presets */}
-             <div className="space-y-2">
-                 {PRESET_MUSIC.map((track, idx) => (
-                     <button
-                        key={idx}
-                        onClick={() => selectMusic(track)}
-                        className={`w-full p-4 rounded-xl border flex items-center gap-3 transition-all ${
-                            formData.music === track.name 
-                            ? 'bg-red-50 border-christmas-red ring-1 ring-christmas-red' 
-                            : 'bg-white border-gray-200 hover:border-red-200'
-                        }`}
-                     >
-                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${formData.music === track.name ? 'bg-christmas-red text-white' : 'bg-gray-100 text-gray-400'}`}>
-                             {formData.music === track.name ? <Music className="w-5 h-5" /> : <PlayCircle className="w-5 h-5" />}
-                         </div>
-                         <div className="text-left flex-1">
-                             <div className={`font-medium ${formData.music === track.name ? 'text-christmas-darkRed' : 'text-gray-900'}`}>{track.name}</div>
-                             <div className="text-xs text-gray-500">Música sugerida</div>
-                         </div>
-                         {formData.music === track.name && <Check className="w-5 h-5 text-christmas-red" />}
-                     </button>
-                 ))}
-             </div>
-
-             <div className="relative flex py-2 items-center">
-                <div className="flex-grow border-t border-gray-300"></div>
-                <span className="flex-shrink-0 mx-4 text-gray-400 text-xs">LINKS EXTERNOS</span>
-                <div className="flex-grow border-t border-gray-300"></div>
-             </div>
+             <label className="block text-sm font-medium text-gray-700">Música de Fundo</label>
 
              {/* Youtube Input */}
              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
@@ -440,7 +405,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                 <div className="flex gap-2">
                     <input 
                         type="text"
-                        placeholder="https://youtube.com/watch?v=..."
+                        placeholder="Cole o link do YouTube aqui..."
                         value={youtubeUrl}
                         onChange={(e) => setYoutubeUrl(e.target.value)}
                         className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-christmas-red outline-none"
@@ -453,32 +418,16 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                     </button>
                 </div>
                 <p className="text-[10px] text-gray-500 mt-2">
-                    Cole o link do vídeo do YouTube. O áudio tocará no celular.
+                    O áudio do vídeo tocará no celular. Certifique-se de que o vídeo permite reprodução externa.
                 </p>
              </div>
-
-             {/* Custom URL */}
-             <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label className="block text-xs font-bold text-gray-700 mb-2 uppercase">Link do MP3 (Opcional)</label>
-                <div className="flex gap-2">
-                    <input 
-                        type="text"
-                        placeholder="https://exemplo.com/musica.mp3"
-                        value={customMusicUrl}
-                        onChange={(e) => setCustomMusicUrl(e.target.value)}
-                        className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-christmas-red outline-none"
-                    />
-                    <button 
-                        onClick={handleCustomMusic}
-                        className="bg-gray-800 text-white px-4 rounded-lg text-sm font-medium hover:bg-black transition-colors"
-                    >
-                        Usar
-                    </button>
-                </div>
-                <p className="text-[10px] text-gray-500 mt-2">
-                    Cole um link direto para um arquivo .mp3.
-                </p>
-             </div>
+             
+             {formData.musicUrl && formData.music === "YouTube Music" && (
+                 <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
+                     <CheckCircle className="w-4 h-4" />
+                     <span className="truncate">Música selecionada com sucesso!</span>
+                 </div>
+             )}
           </div>
         );
       case 5: // Background
