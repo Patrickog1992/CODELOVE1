@@ -8,14 +8,32 @@ interface PhonePreviewProps {
   data: BuilderData;
 }
 
+// Helper to extract YouTube ID
+const getYoutubeId = (url: string) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+};
+
 export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
+  const youtubeId = getYoutubeId(data.musicUrl || '');
+  const isYoutube = !!youtubeId;
+
   // Auto-play audio when mounted or when URL changes
   useEffect(() => {
-    if (audioRef.current && data.musicUrl) {
+    setIsPlaying(false); // Reset state on change
+    
+    if (isYoutube) {
+        // YouTube autoplay is restricted by browsers, but we set state to be ready
+        // Real autoplay needs user interaction usually
+        setIsPlaying(true); 
+    } else if (audioRef.current && data.musicUrl) {
         audioRef.current.volume = 0.5;
         const playPromise = audioRef.current.play();
         
@@ -28,10 +46,33 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
           });
         }
     }
-  }, [data.musicUrl]);
+  }, [data.musicUrl, isYoutube]);
+
+  // Effect to control YouTube iframe via postMessage
+  useEffect(() => {
+    if (!isYoutube || !iframeRef.current) return;
+
+    const command = isPlaying ? 'playVideo' : 'pauseVideo';
+    try {
+        iframeRef.current.contentWindow?.postMessage(JSON.stringify({
+            event: 'command',
+            func: command,
+            args: []
+        }), '*');
+    } catch(e) {
+        console.warn("YouTube control error", e);
+    }
+  }, [isPlaying, isYoutube]);
+
 
   const toggleAudio = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+
+    if (isYoutube) {
+        setIsPlaying(!isPlaying);
+        return;
+    }
+
     if (!audioRef.current) return;
 
     if (isPlaying) {
@@ -60,12 +101,14 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
       case 'hearts':
         return (
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
-             {[...Array(20)].map((_, i) => (
-               <div key={i} className="absolute text-red-500 animate-fall text-3xl" style={{
-                 left: `${Math.random() * 100}%`,
-                 top: `-50px`,
-                 animationDuration: `${Math.random() * 3 + 4}s`,
-                 animationDelay: `${Math.random() * 5}s`,
+             {/* Generate fixed hearts with robust animation */}
+             {[...Array(15)].map((_, i) => (
+               <div key={i} className="absolute text-red-500 animate-heart-rain" style={{
+                 left: `${(i * 7) + Math.random() * 5}%`,
+                 top: '-20px',
+                 fontSize: `${Math.random() * 20 + 20}px`,
+                 animationDuration: `${Math.random() * 2 + 3}s`,
+                 animationDelay: `${Math.random() * 2}s`,
                  opacity: 0.8
                }}>❤️</div>
              ))}
@@ -121,11 +164,13 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
       case 'clouds':
         return (
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
-             <div className="absolute inset-0 animate-drift-slow bg-repeat-x" 
+             {/* Use CSS gradients to simulate clouds moving if image fails, or reliable SVG data uri */}
+             <div className="absolute inset-0 animate-cloud-scroll" 
                   style={{ 
-                    backgroundImage: 'url(https://raw.githubusercontent.com/s1mpson/-/master/codepen/clouds.png)', 
-                    backgroundSize: 'auto 100%',
-                    opacity: 0.6
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 560 200' preserveAspectRatio='xMidYMid slice'%3E%3Cpath d='M112.5 70c-26 0-47.5 21-47.5 47s21.5 47 47.5 47c6 0 11.5-1.5 16.5-4 5 16.5 20.5 29 38.5 29 22 0 40-18 40-40 0-3-.5-6-1.5-8.5 3-1 6-1.5 9-1.5 16.5 0 30-13.5 30-30 0-14.5-10.5-26.5-24.5-29-2.5-19.5-19-34.5-39-34.5-16.5 0-30.5 10.5-36 25-5.5-1-11-1.5-16.5-1.5-2.5 0-5 .5-7.5 1z' fill='white' fill-opacity='0.5'/%3E%3Cpath d='M392.5 50c-33 0-60 27-60 60s27 60 60 60c7.5 0 14.5-1.5 21-4.5 6.5 21 26 36.5 49 36.5 27.5 0 50-22.5 50-50 0-4-1-8-2-11.5 4-1 8-2 12-2 22 0 40-18 40-40 0-19.5-14-35.5-32.5-39-3-24.5-24-43.5-49.5-43.5-20.5 0-38.5 13-45.5 31.5-6.5-1.5-13.5-2-20.5-2-3 0-6 .5-9.5 1.5z' fill='white' fill-opacity='0.4' transform='translate(-50, 20)'/%3E%3C/svg%3E")`,
+                    backgroundSize: '150% auto',
+                    backgroundRepeat: 'repeat-x',
+                    opacity: 0.8
                   }}>
              </div>
           </div>
@@ -240,11 +285,25 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
 
   return (
     <div>
-      {/* Audio Element */}
-      {data.musicUrl && <audio ref={audioRef} src={data.musicUrl} loop playsInline />}
+      {/* Audio Element (Standard MP3) */}
+      {!isYoutube && data.musicUrl && <audio ref={audioRef} src={data.musicUrl} loop playsInline />}
+
+      {/* YouTube Iframe (Hidden) */}
+      {isYoutube && (
+        <div className="hidden">
+            <iframe 
+                ref={iframeRef}
+                width="1" 
+                height="1" 
+                src={`https://www.youtube.com/embed/${youtubeId}?enablejsapi=1&controls=0&loop=1&playlist=${youtubeId}&autoplay=1`} 
+                title="YouTube Audio Player" 
+                allow="autoplay; encrypted-media"
+            ></iframe>
+        </div>
+      )}
 
       {/* Phone Frame */}
-      <div className="relative border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[640px] w-[320px] shadow-2xl mx-auto flex flex-col overflow-hidden ring-4 ring-gray-900/10">
+      <div className="relative border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[640px] w-[320px] shadow-2xl mx-auto flex flex-col overflow-hidden ring-4 ring-gray-900/10 box-border">
         {/* Hardware Buttons */}
         <div className="h-[32px] w-[3px] bg-gray-800 absolute -left-[17px] top-[72px] rounded-l-lg"></div>
         <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[124px] rounded-l-lg"></div>
@@ -267,48 +326,50 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
           {renderBackgroundEffects()}
 
           {/* Content Layer */}
-          <div className="relative z-20 flex flex-col h-full text-white p-6 overflow-y-auto no-scrollbar">
+          <div className="relative z-20 flex flex-col h-full text-white p-5 overflow-y-auto no-scrollbar scroll-smooth">
              
-             {/* Title */}
-             <div className="mt-8 text-center">
-                <h2 className="text-3xl font-poppins font-bold mb-2 break-words leading-tight shadow-sm text-shadow-lg">
+             {/* Title - Fixed Responsive */}
+             <div className="mt-8 text-center w-full">
+                <h2 className="text-2xl font-poppins font-bold mb-2 w-full break-words whitespace-normal leading-tight shadow-sm text-shadow-lg px-2">
                   {data.title || "Seu Título Aqui"}
                 </h2>
              </div>
 
-             {/* Date Counter */}
+             {/* Date Counter - Fixed Responsive */}
              {data.date && (
-               <div className="mt-4 flex justify-center gap-2 text-xs font-mono bg-black/40 p-2 rounded-lg backdrop-blur-sm shadow-sm border border-white/10">
-                 <div className="text-center px-1">
+               <div className="mt-4 flex flex-row items-center justify-center gap-1 text-xs font-mono bg-black/40 p-2 rounded-lg backdrop-blur-sm shadow-sm border border-white/10 w-full max-w-[90%] mx-auto">
+                 <div className="flex-1 text-center min-w-0">
                      <div className="text-lg font-bold leading-none">{timeElapsed.years}</div>
-                     <div className="text-[10px] opacity-80">Anos</div>
+                     <div className="text-[9px] uppercase opacity-80">Anos</div>
                  </div>
-                 <div className="text-center px-1 border-l border-white/20">
+                 <div className="w-[1px] h-6 bg-white/20"></div>
+                 <div className="flex-1 text-center min-w-0">
                      <div className="text-lg font-bold leading-none">{timeElapsed.months}</div>
-                     <div className="text-[10px] opacity-80">Meses</div>
+                     <div className="text-[9px] uppercase opacity-80">Meses</div>
                  </div>
-                 <div className="text-center px-1 border-l border-white/20">
+                 <div className="w-[1px] h-6 bg-white/20"></div>
+                 <div className="flex-1 text-center min-w-0">
                      <div className="text-lg font-bold leading-none">{timeElapsed.days}</div>
-                     <div className="text-[10px] opacity-80">Dias</div>
+                     <div className="text-[9px] uppercase opacity-80">Dias</div>
                  </div>
                </div>
              )}
 
-             {/* Message */}
-             <div className="mt-8 bg-white/20 backdrop-blur-md p-4 rounded-xl text-sm leading-relaxed shadow-lg border border-white/10 min-h-[80px] text-shadow-sm mb-6">
+             {/* Message - Fixed Responsive */}
+             <div className="mt-6 bg-white/20 backdrop-blur-md p-4 rounded-xl text-sm leading-relaxed shadow-lg border border-white/10 min-h-[80px] text-shadow-sm mb-6 w-full break-words whitespace-pre-wrap">
                 {data.message || "Sua mensagem especial aparecerá aqui..."}
              </div>
 
              {/* Photo Gallery with Modes */}
-             <div className="flex-1 flex items-center justify-center min-h-[220px]">
-                <div className="w-full aspect-square relative">
+             <div className="flex-1 flex items-center justify-center min-h-[200px] w-full">
+                <div className="w-full aspect-square relative max-w-[260px]">
                     {renderPhotoImage()}
                 </div>
              </div>
              
              {/* Music Player Mock */}
              {data.music && (
-               <div className="mt-4 mb-2 bg-black/60 backdrop-blur-xl p-3 rounded-2xl flex items-center gap-3 border border-white/10 shadow-xl cursor-pointer hover:bg-black/70 transition-colors" onClick={toggleAudio}>
+               <div className="mt-4 mb-2 bg-black/60 backdrop-blur-xl p-3 rounded-2xl flex items-center gap-3 border border-white/10 shadow-xl cursor-pointer hover:bg-black/70 transition-colors w-full" onClick={toggleAudio}>
                  <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden shrink-0">
                     <div className="absolute inset-0 bg-gradient-to-tr from-christmas-red to-orange-500 opacity-80"></div>
                     {isPlaying ? (
@@ -321,13 +382,13 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
                         <Play className="w-4 h-4 text-white z-10 fill-white ml-0.5" />
                     )}
                  </div>
-                 <div className="flex-1 overflow-hidden">
-                   <p className="text-xs font-bold truncate text-white">{data.music}</p>
-                   <p className="text-[10px] text-gray-300 flex items-center gap-1">
+                 <div className="flex-1 overflow-hidden min-w-0">
+                   <p className="text-xs font-bold truncate text-white block">{data.music}</p>
+                   <p className="text-[10px] text-gray-300 flex items-center gap-1 truncate">
                       {isPlaying ? 'Tocando agora...' : 'Toque para ouvir'}
                    </p>
                  </div>
-                 <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                 <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
                     {isPlaying ? <Pause className="w-4 h-4 text-white" /> : <Play className="w-4 h-4 text-white fill-white" />}
                  </div>
                </div>
@@ -341,10 +402,27 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
         .text-shadow-sm { text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
         .perspective-1000 { perspective: 1000px; }
         
-        @keyframes fall {
-          0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-          100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+        /* Hearts Rain Animation - Fixed */
+        @keyframes heart-rain {
+          0% { transform: translateY(-10%) rotate(0deg); opacity: 0; }
+          10% { opacity: 1; }
+          100% { transform: translateY(600px) rotate(360deg); opacity: 0; }
         }
+        .animate-heart-rain {
+            animation-name: heart-rain;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+        }
+
+        /* Clouds Scroll Animation - Fixed */
+        @keyframes cloud-scroll {
+            from { background-position: 0 0; }
+            to { background-position: 200% 0; }
+        }
+        .animate-cloud-scroll {
+            animation: cloud-scroll 30s linear infinite;
+        }
+
         @keyframes comet {
             0% { transform: translateX(0) translateY(0) rotate(-45deg); opacity: 1; }
             100% { transform: translateX(400px) translateY(400px) rotate(-45deg); opacity: 0; }
@@ -362,10 +440,6 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
             from { transform: translate(-50%, -50%) rotate(0deg); }
             to { transform: translate(-50%, -50%) rotate(360deg); }
         }
-        @keyframes drift-slow {
-            from { background-position: 0 0; }
-            to { background-position: 100% 0; }
-        }
         
         /* Music Bars */
         @keyframes music-bar {
@@ -380,7 +454,6 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
         .animate-twinkle { animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
         .animate-aurora { animation: aurora 15s infinite alternate linear; }
         .animate-spin-slow { animation: spin-slow 20s linear infinite; }
-        .animate-drift-slow { animation: drift-slow 60s linear infinite; }
       `}</style>
     </div>
   );

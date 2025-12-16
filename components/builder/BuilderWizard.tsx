@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Upload, Music, Check, X, Trash2, Search, PlayCircle, Loader2, Copy, Share2, Download, CheckCircle, AlertTriangle, Info, Image as ImageIcon, Link as LinkIcon, Camera } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Upload, Music, Check, X, Trash2, Search, PlayCircle, Loader2, Copy, Share2, Download, CheckCircle, AlertTriangle, Info, Image as ImageIcon, Link as LinkIcon, Camera, Youtube } from 'lucide-react';
 import { BuilderData, PhotoMode, BackgroundType } from '../../types';
 import { PhonePreview } from './PhonePreview';
 
@@ -56,6 +56,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
   });
 
   const [customMusicUrl, setCustomMusicUrl] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
 
   // Photo Input State
   const [photoInputMode, setPhotoInputMode] = useState<'gallery' | 'upload'>('gallery');
@@ -131,6 +132,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
         musicUrl: music.url
     }));
     setCustomMusicUrl('');
+    setYoutubeUrl('');
   };
 
   const handleCustomMusic = () => {
@@ -140,6 +142,17 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
           music: "Música Personalizada",
           musicUrl: customMusicUrl
       }));
+      setYoutubeUrl('');
+  };
+
+  const handleYoutubeMusic = () => {
+    if(!youtubeUrl) return;
+    setFormData(prev => ({
+        ...prev,
+        music: "YouTube Music",
+        musicUrl: youtubeUrl
+    }));
+    setCustomMusicUrl('');
   };
 
   // --- PHOTO LOGIC ---
@@ -414,8 +427,34 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
 
              <div className="relative flex py-2 items-center">
                 <div className="flex-grow border-t border-gray-300"></div>
-                <span className="flex-shrink-0 mx-4 text-gray-400 text-xs">OU USE SEU LINK</span>
+                <span className="flex-shrink-0 mx-4 text-gray-400 text-xs">LINKS EXTERNOS</span>
                 <div className="flex-grow border-t border-gray-300"></div>
+             </div>
+
+             {/* Youtube Input */}
+             <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="block text-xs font-bold text-gray-700 mb-2 flex items-center gap-1">
+                    <Youtube className="w-4 h-4 text-red-600" />
+                    YouTube (Link do Vídeo)
+                </label>
+                <div className="flex gap-2">
+                    <input 
+                        type="text"
+                        placeholder="https://youtube.com/watch?v=..."
+                        value={youtubeUrl}
+                        onChange={(e) => setYoutubeUrl(e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-christmas-red outline-none"
+                    />
+                    <button 
+                        onClick={handleYoutubeMusic}
+                        className="bg-red-600 text-white px-4 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+                    >
+                        Usar
+                    </button>
+                </div>
+                <p className="text-[10px] text-gray-500 mt-2">
+                    Cole o link do vídeo do YouTube. O áudio tocará no celular.
+                </p>
              </div>
 
              {/* Custom URL */}
@@ -437,7 +476,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                     </button>
                 </div>
                 <p className="text-[10px] text-gray-500 mt-2">
-                    Cole um link direto para um arquivo .mp3. (Links do Spotify/YouTube não funcionam aqui)
+                    Cole um link direto para um arquivo .mp3.
                 </p>
              </div>
           </div>
