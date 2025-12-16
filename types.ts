@@ -34,7 +34,7 @@ export interface FAQItem {
   answer: string;
 }
 
-export type BackgroundType = 'none' | 'hearts' | 'stars_comets' | 'stars_meteors' | 'aurora' | 'vortex' | 'clouds' | 'emojis';
+export type BackgroundType = 'none' | 'hearts' | 'stars_comets' | 'stars_meteors' | 'aurora' | 'vortex' | 'clouds' | 'emojis' | 'trees';
 export type PhotoMode = 'coverflow' | 'cube' | 'cards' | 'flip';
 
 export interface BuilderData {

@@ -481,6 +481,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
           <div className="space-y-3">
              {[
                { id: 'none', label: 'Nenhuma' },
+               { id: 'trees', label: 'Chuva de Árvores de Natal 🎄' },
                { id: 'hearts', label: 'Chuva de corações ❤️' },
                { id: 'stars_comets', label: 'Céu Estrelado com Cometas 🌠' },
                { id: 'stars_meteors', label: 'Céu Estrelado com Meteoros 🌌' },

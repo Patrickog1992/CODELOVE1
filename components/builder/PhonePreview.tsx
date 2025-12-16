@@ -116,6 +116,21 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
   // Helper to render background OVERLAYS (not replacing the background)
   const renderBackgroundEffects = () => {
     switch (data.background) {
+      case 'trees':
+        return (
+            <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
+                {[...Array(15)].map((_, i) => (
+                    <div key={i} className="absolute text-2xl animate-tree-fall" style={{
+                        left: `${(i * 7) + Math.random() * 5}%`,
+                        top: '-30px',
+                        animationDuration: `${Math.random() * 3 + 2}s`,
+                        animationDelay: `${Math.random() * 2}s`,
+                        opacity: 0.9,
+                        fontSize: `${Math.random() * 10 + 20}px`
+                    }}>🎄</div>
+                ))}
+            </div>
+        );
       case 'hearts':
         return (
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
@@ -428,6 +443,18 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
         .text-shadow-sm { text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
         .perspective-1000 { perspective: 1000px; }
         
+        /* Tree Fall Animation */
+        @keyframes tree-fall {
+          0% { transform: translateY(-10%) rotate(0deg); opacity: 0; }
+          10% { opacity: 1; }
+          100% { transform: translateY(600px) rotate(20deg); opacity: 0; }
+        }
+        .animate-tree-fall {
+            animation-name: tree-fall;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+        }
+
         /* Hearts Rain Animation - Fixed */
         @keyframes heart-rain {
           0% { transform: translateY(-10%) rotate(0deg); opacity: 0; }
