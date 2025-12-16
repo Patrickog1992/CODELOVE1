@@ -53,17 +53,17 @@ export const MockupSection: React.FC = () => {
 
               <div className="absolute inset-0 bg-black/40" />
                 
-                {/* Heart Rain Animation Overlay */}
+                {/* Tree Rain Animation Overlay */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
                     {[...Array(12)].map((_, i) => (
-                    <div key={i} className="absolute text-red-500 animate-heart-rain-mockup" style={{
+                    <div key={i} className="absolute animate-heart-rain-mockup" style={{
                         left: `${(i * 15) + Math.random() * 10}%`,
                         top: '-20px',
                         fontSize: `${Math.random() * 20 + 20}px`,
                         animationDuration: `${Math.random() * 2 + 3}s`,
                         animationDelay: `${Math.random() * 2}s`,
-                        opacity: 0.8
-                    }}>❤️</div>
+                        opacity: 0.9
+                    }}>🎄</div>
                     ))}
                 </div>
 

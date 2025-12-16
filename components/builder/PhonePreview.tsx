@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { BuilderData } from '../../types';
 import { SnowEffect } from '../SnowEffect';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Play, Pause, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Pause, Loader2, Disc } from 'lucide-react';
 
 interface PhonePreviewProps {
   data: BuilderData;
@@ -13,7 +13,6 @@ interface PhonePreviewProps {
 const OptimizedImage = ({ src, className, style }: { src: string, className?: string, style?: React.CSSProperties }) => {
     const [isLoaded, setIsLoaded] = useState(false);
     
-    // Reset loaded state when src changes
     useEffect(() => {
         setIsLoaded(false);
         const img = new Image();
@@ -37,97 +36,50 @@ const OptimizedImage = ({ src, className, style }: { src: string, className?: st
     );
 };
 
-// Helper to extract YouTube ID
-const getYoutubeId = (url: string) => {
-    if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-};
-
 export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = false }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false); 
-  const [playerReady, setPlayerReady] = useState(false);
-  const [origin, setOrigin] = useState<string>('');
 
-  const youtubeId = getYoutubeId(data.musicUrl || '');
-  const isYoutube = !!youtubeId;
-
-  // Securely capture origin on mount to prevent mismatch errors (Error 153)
+  // Handle autoPlay prop - ONLY ON MOUNT
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-        setOrigin(window.location.origin);
+    if (autoPlay && audioRef.current) {
+         const playPromise = audioRef.current.play();
+         if (playPromise !== undefined) {
+             playPromise.then(() => {
+                 setIsPlaying(true);
+             }).catch(error => {
+                 console.log("Autoplay prevented by browser policy", error);
+                 setIsPlaying(false);
+             });
+         }
     }
-  }, []);
+  }, [autoPlay, data.musicUrl]);
 
-  // Handle autoPlay prop
-  useEffect(() => {
-    if (autoPlay) {
-        setIsPlaying(true);
-    }
-  }, [autoPlay]);
-
-  // Reset player ready state when ID changes
-  useEffect(() => {
-      setPlayerReady(false);
-      setIsPlaying(false);
-  }, [youtubeId]);
-
-  // Robust Command Sender
-  const sendYoutubeCommand = (command: 'playVideo' | 'pauseVideo') => {
-      if (!iframeRef.current?.contentWindow) return;
-      
-      const message = JSON.stringify({
-          event: 'command',
-          func: command,
-          args: []
-      });
-
-      iframeRef.current.contentWindow.postMessage(message, '*');
-  };
-
-  // Sync React State with Players
-  useEffect(() => {
-      if (isYoutube) {
-          if (playerReady) {
-              sendYoutubeCommand(isPlaying ? 'playVideo' : 'pauseVideo');
-          }
-      } else if (audioRef.current) {
-          if (isPlaying) {
-              audioRef.current.play().catch(e => {
-                  console.warn("Autoplay blocked:", e);
-                  setIsPlaying(false);
-              });
-          } else {
-              audioRef.current.pause();
-          }
-      }
-  }, [isPlaying, isYoutube, playerReady, youtubeId]);
-
-  // Force Play Retry Mechanism
+  // Handle Play/Pause Toggle
   const toggleAudio = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     
-    const nextState = !isPlaying;
-    setIsPlaying(nextState);
-
-    // Force command send immediately and retry
-    if (isYoutube && nextState) {
-        sendYoutubeCommand('playVideo');
-        
-        let attempts = 0;
-        const interval = setInterval(() => {
-            if (iframeRef.current?.contentWindow) {
-                sendYoutubeCommand('playVideo');
-            }
-            attempts++;
-            if (attempts > 8) clearInterval(interval);
-        }, 250); 
+    if (audioRef.current) {
+        if (isPlaying) {
+            audioRef.current.pause();
+            setIsPlaying(false);
+        } else {
+            audioRef.current.play().catch(e => console.error("Play error:", e));
+            setIsPlaying(true);
+        }
     }
   };
+
+  // Sync state if audio ends
+  useEffect(() => {
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      const handleEnded = () => setIsPlaying(false);
+      audio.addEventListener('ended', handleEnded);
+      return () => audio.removeEventListener('ended', handleEnded);
+  }, []);
 
   // Handle Photo Navigation
   const photos = data.photos && data.photos.length > 0 ? data.photos : ['https://images.unsplash.com/photo-1543589077-47d81606c1bf?w=500&q=80'];
@@ -359,28 +311,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
   return (
     <div>
       {/* Audio Element (Standard MP3) */}
-      {!isYoutube && data.musicUrl && <audio ref={audioRef} src={data.musicUrl} loop playsInline />}
-
-      {/* YouTube Iframe (Robust) 
-          1. Added 'origin' and 'widget_referrer' to enable JS control securely.
-          2. Added 'autoplay=1' and 'mute=0'.
-          3. Added 'playsinline=1' to fix mobile playback.
-      */}
-      {isYoutube && origin && (
-        <div className="fixed bottom-0 right-0 w-[1px] h-[1px] opacity-[0.01] pointer-events-none z-[50] overflow-hidden">
-            <iframe 
-                key={youtubeId}
-                ref={iframeRef}
-                width="100%" 
-                height="100%" 
-                onLoad={() => setPlayerReady(true)}
-                src={`https://www.youtube.com/embed/${youtubeId}?enablejsapi=1&autoplay=1&controls=0&loop=1&playlist=${youtubeId}&playsinline=1&mute=0&origin=${encodeURIComponent(origin)}`}
-                title="YouTube Audio Player" 
-                allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
-                loading="eager"
-            ></iframe>
-        </div>
-      )}
+      {data.musicUrl && <audio ref={audioRef} src={data.musicUrl} loop playsInline />}
 
       {/* Phone Frame */}
       <div className="relative border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[640px] w-[320px] shadow-2xl mx-auto flex flex-col overflow-hidden ring-4 ring-gray-900/10 box-border">
@@ -449,27 +380,33 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
                  
                  {/* Music Player */}
                  {data.music && (
-                   <div className="shrink-0 bg-black/60 backdrop-blur-xl p-3 rounded-2xl flex items-center gap-3 border border-white/10 shadow-xl cursor-pointer hover:bg-black/70 transition-colors w-full" onClick={toggleAudio}>
-                     <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden shrink-0">
-                        <div className="absolute inset-0 bg-gradient-to-tr from-christmas-red to-orange-500 opacity-80"></div>
-                        {isPlaying ? (
-                            <div className="flex items-end justify-center gap-[2px] h-4 w-5 z-10">
-                                <div className="w-[3px] bg-white rounded-t-sm animate-music-bar-1"></div>
-                                <div className="w-[3px] bg-white rounded-t-sm animate-music-bar-2"></div>
-                                <div className="w-[3px] bg-white rounded-t-sm animate-music-bar-3"></div>
-                            </div>
-                        ) : (
-                            <Play className="w-4 h-4 text-white z-10 fill-white ml-0.5" />
-                        )}
+                   <div className="shrink-0 bg-gradient-to-r from-gray-900/80 to-black/80 backdrop-blur-xl p-3 rounded-2xl flex items-center gap-3 border border-white/10 shadow-xl cursor-pointer hover:bg-black/90 transition-colors w-full group" onClick={toggleAudio}>
+                     <div className={`w-12 h-12 rounded-full flex items-center justify-center relative overflow-hidden shrink-0 border-2 border-white/20 shadow-inner ${isPlaying ? 'animate-spin-slow' : ''}`}>
+                        <div className="absolute inset-0 bg-[conic-gradient(var(--tw-gradient-stops))] from-gray-800 via-gray-600 to-gray-800"></div>
+                        <div className="absolute inset-2 bg-black rounded-full flex items-center justify-center">
+                            <Disc className="w-5 h-5 text-gray-500" />
+                        </div>
                      </div>
+                     
                      <div className="flex-1 overflow-hidden min-w-0">
                        <p className="text-xs font-bold truncate text-white block">{data.music}</p>
-                       <p className="text-[10px] text-gray-300 flex items-center gap-1 truncate">
-                          {isPlaying ? 'Tocando agora...' : 'Toque para ouvir'}
-                       </p>
+                       <div className="flex items-center gap-1.5 mt-0.5">
+                            {isPlaying && (
+                                <div className="flex items-end gap-[1px] h-3">
+                                    <div className="w-[2px] bg-christmas-red rounded-t-sm animate-music-bar-1"></div>
+                                    <div className="w-[2px] bg-christmas-red rounded-t-sm animate-music-bar-2"></div>
+                                    <div className="w-[2px] bg-christmas-red rounded-t-sm animate-music-bar-3"></div>
+                                    <div className="w-[2px] bg-christmas-red rounded-t-sm animate-music-bar-1"></div>
+                                </div>
+                            )}
+                           <p className="text-[10px] text-gray-300 truncate">
+                              {isPlaying ? 'Tocando agora...' : 'Toque para ouvir'}
+                           </p>
+                       </div>
                      </div>
-                     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                        {isPlaying ? <Pause className="w-4 h-4 text-white" /> : <Play className="w-4 h-4 text-white fill-white" />}
+                     
+                     <div className="w-9 h-9 rounded-full bg-white/10 group-hover:bg-christmas-red transition-colors flex items-center justify-center shrink-0 border border-white/5">
+                        {isPlaying ? <Pause className="w-4 h-4 text-white fill-white" /> : <Play className="w-4 h-4 text-white fill-white ml-0.5" />}
                      </div>
                    </div>
                  )}
@@ -527,8 +464,8 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
             100% { transform: translate(0, 0) scale(1.5); }
         }
         @keyframes spin-slow {
-            from { transform: translate(-50%, -50%) rotate(0deg); }
-            to { transform: translate(-50%, -50%) rotate(360deg); }
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
         
         @keyframes music-bar {
@@ -542,7 +479,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
         .animate-comet { animation-timing-function: linear; animation-iteration-count: infinite; }
         .animate-twinkle { animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
         .animate-aurora { animation: aurora 15s infinite alternate linear; }
-        .animate-spin-slow { animation: spin-slow 20s linear infinite; }
+        .animate-spin-slow { animation: spin-slow 4s linear infinite; }
       `}</style>
     </div>
   );

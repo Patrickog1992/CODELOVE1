@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Upload, Music, Check, X, Trash2, Search, PlayCircle, Loader2, Copy, Share2, Download, CheckCircle, AlertTriangle, Info, Image as ImageIcon, Link as LinkIcon, Camera, Youtube, ExternalLink, ImagePlus, CloudLightning } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Upload, Music, Check, X, Trash2, Search, PlayCircle, Loader2, Copy, Share2, Download, CheckCircle, AlertTriangle, Info, Image as ImageIcon, Link as LinkIcon, Camera, Youtube, ExternalLink, ImagePlus, CloudLightning, Play, Pause } from 'lucide-react';
 import { BuilderData, PhotoMode, BackgroundType } from '../../types';
 import { PhonePreview } from './PhonePreview';
 
@@ -8,7 +8,7 @@ import { PhonePreview } from './PhonePreview';
 // Substitua estes links pelos seus links reais da Kirvano quando tiver
 const CHECKOUT_LINKS = {
   lifetime: "https://pay.kirvano.com/fc1da8bc-4d63-4a4b-aff4-ff46f74ab73f", 
-  annual: "https://kirvano.com/checkout/SEU_LINK_ANUAL"
+  annual: "https://pay.kirvano.com/01b62e99-bf28-4154-bd70-d8a489d82dd2"
 };
 
 interface BuilderWizardProps {
@@ -21,23 +21,24 @@ const steps = [
   { title: 'Titulo da página', description: 'Escreva o titulo dedicatório para a página.' },
   { title: 'Mensagem', description: 'Escreva uma mensagem especial. Seja criativo e demonstre todo seu carinho.' },
   { title: 'Data de início', description: 'Informe a data de início que simbolize o início de uma união, relacionamento, amizade, etc.' },
-  { title: 'Fotos do Casal', description: 'Personalize com fotos especiais. Escolha da galeria ou envie do seu celular.' },
-  { title: 'Música (YouTube)', description: 'Cole um link do YouTube para tocar na página.' },
+  { title: 'Fotos de Natal', description: 'Personalize com fotos especiais. Envie fotos do seu celular ou computador.' },
+  { title: 'Escolha uma música', description: 'Selecione a trilha sonora perfeita para o seu presente.' },
   { title: 'Animação de fundo', description: 'Escolha uma animação de fundo para a página.' },
-  { title: 'Informações de contato', description: 'Preencha as informações de contato para receber o link e o QR Code.' },
   { title: 'Escolha seu plano', description: 'Selecione o plano que melhor atende às suas necessidades.' },
 ];
 
-// Reliable Unsplash Images
-const PRESET_IMAGES = [
-  "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=500&q=80", // Love Hand
-  "https://images.unsplash.com/photo-1511285560982-1356c11d4606?w=500&q=80", // Wedding/Couple
-  "https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=500&q=80", // Christmas Lights
-  "https://images.unsplash.com/photo-1543589077-47d81606c1bf?w=500&q=80", // Couple Snow
-  "https://images.unsplash.com/photo-1621800100799-a8685161048f?w=500&q=80", // Hands holding
-  "https://images.unsplash.com/photo-1523438885200-e635ba2c371e?w=500&q=80", // Sparkler
-  "https://images.unsplash.com/photo-1513297887119-d46091b24bfa?w=500&q=80", // Christmas Tree
-  "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=500&q=80"  // Gift
+// Provided Music List
+const MUSIC_OPTIONS = [
+  { id: 1, name: "Melodia Natalina 1", url: "https://ia902805.us.archive.org/11/items/10-faixa-10_202512/01%20Faixa%201.mp3" },
+  { id: 2, name: "Melodia Natalina 2", url: "https://ia902805.us.archive.org/11/items/10-faixa-10_202512/02%20Faixa%202.mp3" },
+  { id: 3, name: "Melodia Natalina 3", url: "https://ia902805.us.archive.org/11/items/10-faixa-10_202512/03%20Faixa%203.mp3" },
+  { id: 4, name: "Melodia Natalina 4", url: "https://ia902805.us.archive.org/11/items/10-faixa-10_202512/04%20Faixa%204.mp3" },
+  { id: 5, name: "Melodia Natalina 5", url: "https://ia902805.us.archive.org/11/items/10-faixa-10_202512/05%20Faixa%205.mp3" },
+  { id: 6, name: "Melodia Natalina 6", url: "https://ia902805.us.archive.org/11/items/10-faixa-10_202512/06%20Faixa%206.mp3" },
+  { id: 7, name: "Melodia Natalina 7", url: "https://ia902805.us.archive.org/11/items/10-faixa-10_202512/07%20Faixa%207.mp3" },
+  { id: 8, name: "Melodia Natalina 8", url: "https://ia902805.us.archive.org/11/items/10-faixa-10_202512/08%20Faixa%208.mp3" },
+  { id: 9, name: "Melodia Natalina 9", url: "https://ia902805.us.archive.org/11/items/10-faixa-10_202512/09%20Faixa%209.mp3" },
+  { id: 10, name: "Melodia Natalina 10", url: "https://ia902805.us.archive.org/11/items/10-faixa-10_202512/10%20Faixa%2010.mp3" },
 ];
 
 export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialData, startFinished = false }) => {
@@ -57,6 +58,10 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
     selectedPlan: initialData?.selectedPlan || null
   });
 
+  // Music Preview State
+  const [playingPreview, setPlayingPreview] = useState<string | null>(null);
+  const audioPreviewRef = useRef<HTMLAudioElement | null>(null);
+
   // Parse date for selectors if exists
   const parseDate = (dateString: string) => {
       if(!dateString) return { day: '', month: '', year: '' };
@@ -73,11 +78,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
         setFormData(prev => ({ ...prev, date: isoDate }));
     }
   }, [dateParts]);
-
-  const [youtubeUrl, setYoutubeUrl] = useState(formData.musicUrl || '');
-
-  // Photo Input State
-  const [photoInputMode, setPhotoInputMode] = useState<'gallery' | 'upload'>('gallery');
   
   // Custom Upload State
   const [isUploading, setIsUploading] = useState(false);
@@ -94,11 +94,33 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
       }
   }, [startFinished]);
 
+  // Handle preview audio
+  useEffect(() => {
+    if (audioPreviewRef.current) {
+        audioPreviewRef.current.pause();
+        audioPreviewRef.current = null;
+    }
+    
+    if (playingPreview) {
+        const audio = new Audio(playingPreview);
+        audio.volume = 0.5;
+        audio.play().catch(e => console.error("Preview error", e));
+        audio.onended = () => setPlayingPreview(null);
+        audioPreviewRef.current = audio;
+    }
+
+    return () => {
+        if (audioPreviewRef.current) {
+            audioPreviewRef.current.pause();
+        }
+    };
+  }, [playingPreview]);
+
+
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(c => c + 1);
     } 
-    // Removed direct finishWizard call here for the last step because buttons handle checkout
   };
 
   const handlePrev = () => {
@@ -108,10 +130,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
 
   // --- CHECKOUT LOGIC ---
   const handleCheckout = (planType: 'annual' | 'lifetime') => {
-      // 1. Prepare data including selected plan
       const dataToSave = { ...formData, selectedPlan: planType };
-      
-      // 2. Compress/Prepare for eventual URL generation
       const compressedData = {
         t: dataToSave.title,
         m: dataToSave.message,
@@ -121,35 +140,29 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
         bg: dataToSave.background,
         pm: dataToSave.photoMode,
         p: dataToSave.photos,
-        sp: planType // Save plan type
+        sp: planType
       };
 
-      // 3. Save to localStorage to retrieve after payment
       localStorage.setItem('codelove_pending_gift', JSON.stringify(compressedData));
-
-      // 4. Redirect to Checkout
       window.location.href = CHECKOUT_LINKS[planType];
   };
 
   const finishWizard = () => {
     setIsGenerating(true);
     
-    // Simulate processing time (even if instant, gives a nice UX)
     setTimeout(() => {
-        // COMPRESSION: Map long keys to short keys to save URL space
         const compressedData = {
             t: formData.title,
             m: formData.message,
             d: formData.date,
-            mu: formData.music,      // Music Name (Label)
-            muu: formData.musicUrl,  // Music URL
+            mu: formData.music,      
+            muu: formData.musicUrl,
             bg: formData.background,
             pm: formData.photoMode,
-            p: formData.photos       // Photos Array
+            p: formData.photos       
         };
 
         const jsonString = JSON.stringify(compressedData);
-        // Use standard btoa with URIComponent encoding for UTF-8 support
         const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
         
         const origin = window.location.origin;
@@ -158,7 +171,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
         
         const uniqueUrl = `${origin}${cleanPath}?gift=${encodedData}`;
         
-        // Check URL length for QR Code safety
         let qrCodeData = uniqueUrl;
         let warning = undefined;
 
@@ -181,37 +193,25 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleYoutubeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const url = e.target.value;
-      setYoutubeUrl(url);
-      
-      // Auto-update form data strictly for YouTube
-      if (url.trim().length > 0) {
-        setFormData(prev => ({
-            ...prev,
-            music: "Música Especial",
-            musicUrl: url
-        }));
+  const handleMusicSelect = (music: { name: string, url: string }) => {
+     setFormData(prev => ({
+         ...prev,
+         music: music.name,
+         musicUrl: music.url
+     }));
+  };
+
+  const togglePreview = (url: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (playingPreview === url) {
+          setPlayingPreview(null);
       } else {
-        setFormData(prev => ({
-            ...prev,
-            music: "",
-            musicUrl: ""
-        }));
+          setPlayingPreview(url);
       }
   };
 
-  // --- PHOTO LOGIC ---
 
-  const togglePhoto = (url: string) => {
-    const currentPhotos = [...formData.photos];
-    if (currentPhotos.includes(url)) {
-        updateField('photos', currentPhotos.filter(p => p !== url));
-    } else {
-        if (currentPhotos.length >= 8) return;
-        updateField('photos', [...currentPhotos, url]);
-    }
-  };
+  // --- PHOTO LOGIC ---
 
   const removePhoto = (index: number) => {
     const newPhotos = [...formData.photos];
@@ -219,7 +219,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
     updateField('photos', newPhotos);
   };
 
-  // --- CUSTOM UPLOAD LOGIC (Headless Cloudinary) ---
+  // --- CUSTOM UPLOAD LOGIC ---
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
       if (!files || files.length === 0) return;
@@ -233,20 +233,14 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
       }
 
       setIsUploading(true);
-
       const uploadedUrls: string[] = [];
 
-      // Process sequentially to maintain order somewhat or just Promise.all
-      // Using simple loop for better error handling per file
       for (const file of filesArray) {
-          // Verify it's an image
-          if (!file.type.startsWith('image/')) {
-              continue;
-          }
+          if (!file.type.startsWith('image/')) continue;
 
           const uploadData = new FormData();
           uploadData.append('file', file);
-          uploadData.append('upload_preset', 'natal-upload'); // Using existing preset
+          uploadData.append('upload_preset', 'natal-upload');
           uploadData.append('folder', 'presentes-natal');
 
           try {
@@ -258,12 +252,9 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
               const data = await response.json();
               if (data.secure_url) {
                   uploadedUrls.push(data.secure_url);
-              } else {
-                  console.error("Upload failed for file", file.name, data);
               }
           } catch (err) {
               console.error("Network error uploading", err);
-              alert("Erro ao enviar imagem. Verifique sua conexão.");
           }
       }
 
@@ -275,10 +266,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
       }
 
       setIsUploading(false);
-      // Reset input
-      if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-      }
+      if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
 
@@ -311,12 +299,11 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
             <div className="text-right text-xs text-gray-400">{formData.message.length}/500</div>
           </div>
         );
-      case 2: // Date - Custom Selectors (NO SCROLL BUG)
+      case 2: // Date
         return (
           <div className="space-y-4">
             <label className="block text-sm font-medium text-gray-700">Data de Início</label>
             <div className="flex gap-2">
-                {/* Day */}
                 <select 
                     className="w-1/3 px-3 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-christmas-red outline-none bg-white text-sm"
                     value={dateParts.day}
@@ -327,8 +314,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                         <option key={d} value={d.toString().padStart(2, '0')}>{d}</option>
                     ))}
                 </select>
-
-                {/* Month */}
                 <select 
                     className="w-1/3 px-3 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-christmas-red outline-none bg-white text-sm"
                     value={dateParts.month}
@@ -339,8 +324,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                         <option key={i} value={(i + 1).toString().padStart(2, '0')}>{m}</option>
                     ))}
                 </select>
-
-                {/* Year */}
                 <select 
                     className="w-1/3 px-3 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-christmas-red outline-none bg-white text-sm"
                     value={dateParts.year}
@@ -355,98 +338,41 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
             <p className="text-xs text-gray-500">Selecione o dia, mês e ano.</p>
           </div>
         );
-      case 3: // Photos (Updated)
+      case 3: // Photos (Updated to Upload Only)
         return (
           <div className="space-y-6">
-            
-            {/* Tabs */}
-            <div className="flex bg-gray-100 p-1 rounded-lg">
-                <button 
-                    onClick={() => setPhotoInputMode('gallery')}
-                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${photoInputMode === 'gallery' ? 'bg-white text-christmas-red shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
+                <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    className="hidden" 
+                    accept="image/*"
+                    multiple
+                />
+                <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`group relative border-2 border-dashed border-red-200 bg-red-50 hover:bg-red-100 transition-colors rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer min-h-[160px] ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
                 >
-                    Galeria
-                </button>
-                <button 
-                    onClick={() => setPhotoInputMode('upload')}
-                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${photoInputMode === 'upload' ? 'bg-white text-christmas-red shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                    Enviar Fotos
-                </button>
-            </div>
-
-            {/* Gallery Content */}
-            {photoInputMode === 'gallery' && (
-                <div className="space-y-2 animate-in fade-in slide-in-from-bottom-2">
-                    <div className="bg-blue-50 p-2 rounded text-xs text-blue-700">
-                        Fotos de alta qualidade perfeitas para o Natal.
-                    </div>
-                    <div className="grid grid-cols-4 gap-2">
-                        {PRESET_IMAGES.map((url, idx) => (
-                            <div 
-                                key={idx} 
-                                onClick={() => togglePhoto(url)}
-                                className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${formData.photos.includes(url) ? 'border-christmas-red scale-95' : 'border-transparent hover:border-gray-300'}`}
-                            >
-                                <img src={url} alt="Preset" className="w-full h-full object-cover" />
-                                {formData.photos.includes(url) && (
-                                    <div className="absolute inset-0 bg-christmas-red/20 flex items-center justify-center">
-                                        <CheckCircle className="w-6 h-6 text-white drop-shadow-md" />
-                                    </div>
-                                )}
+                      {isUploading ? (
+                          <div className="flex flex-col items-center animate-pulse">
+                              <Loader2 className="w-10 h-10 text-christmas-red animate-spin mb-3" />
+                              <p className="text-sm font-bold text-christmas-red">Enviando fotos...</p>
+                          </div>
+                      ) : (
+                          <>
+                            <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm group-hover:scale-110 transition-transform">
+                                <ImagePlus className="w-7 h-7 text-christmas-red" />
                             </div>
-                        ))}
-                    </div>
+                            <h4 className="font-bold text-gray-800 text-sm">Toque para adicionar fotos</h4>
+                            <p className="text-xs text-gray-500 mt-1 max-w-[200px] text-center">
+                                Escolha da sua galeria. (Máx 8 fotos)
+                            </p>
+                          </>
+                      )}
                 </div>
-            )}
-
-            {/* Custom Upload Content (Replaces Widget) */}
-            {photoInputMode === 'upload' && (
-                <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
-                    
-                    {/* Hidden Input */}
-                    <input 
-                        type="file" 
-                        ref={fileInputRef}
-                        onChange={handleFileUpload}
-                        className="hidden" 
-                        accept="image/*"
-                        multiple
-                    />
-
-                    {/* Custom Drop Area */}
-                    <div 
-                        onClick={() => fileInputRef.current?.click()}
-                        className={`group relative border-2 border-dashed border-red-200 bg-red-50 hover:bg-red-100 transition-colors rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer min-h-[160px] ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
-                    >
-                         {isUploading ? (
-                             <div className="flex flex-col items-center animate-pulse">
-                                 <Loader2 className="w-10 h-10 text-christmas-red animate-spin mb-3" />
-                                 <p className="text-sm font-bold text-christmas-red">Enviando fotos...</p>
-                             </div>
-                         ) : (
-                             <>
-                                <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm group-hover:scale-110 transition-transform">
-                                    <ImagePlus className="w-7 h-7 text-christmas-red" />
-                                </div>
-                                <h4 className="font-bold text-gray-800 text-sm">Toque para adicionar fotos</h4>
-                                <p className="text-xs text-gray-500 mt-1 max-w-[200px] text-center">
-                                    Escolha da sua galeria. (Máx 8 fotos)
-                                </p>
-                             </>
-                         )}
-                    </div>
-
-                    <div className="flex gap-2 items-start bg-blue-50 p-3 rounded-lg">
-                        <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                        <p className="text-xs text-blue-700 leading-snug">
-                            Suas fotos são otimizadas automaticamente para o QR Code. O envio é rápido e seguro.
-                        </p>
-                    </div>
-                </div>
-            )}
+            </div>
             
-            {/* Selected Photos List */}
             {formData.photos.length > 0 && (
                 <div className="pt-2 border-t border-gray-100">
                     <p className="text-sm font-medium text-gray-700 mb-2">Fotos Selecionadas ({formData.photos.length}/8)</p>
@@ -491,33 +417,54 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
             </div>
           </div>
         );
-      case 4: // Music (Youtube) - Reverted to simple input
+      case 4: // Music (Updated List)
         return (
-          <div className="space-y-6">
-             <label className="block text-sm font-medium text-gray-700">Link da Música (YouTube)</label>
+          <div className="space-y-4">
+             <label className="block text-sm font-medium text-gray-700">Escolha uma música especial</label>
+             <div className="space-y-2 h-72 overflow-y-auto pr-2 scrollbar-thin">
+                 {MUSIC_OPTIONS.map((track) => {
+                     const isSelected = formData.musicUrl === track.url;
+                     const isPlaying = playingPreview === track.url;
 
-             <div className="space-y-4">
-                 <div className="relative">
-                    <Youtube className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input 
-                        type="text"
-                        placeholder="Ex: https://www.youtube.com/watch?v=..."
-                        value={youtubeUrl}
-                        onChange={handleYoutubeChange}
-                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-christmas-red outline-none shadow-sm transition-all"
-                    />
-                 </div>
-                 
-                 <div className="bg-blue-50 p-4 rounded-xl flex gap-3 items-start border border-blue-100">
-                    <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                    <div className="text-sm text-blue-800">
-                        <p className="font-semibold mb-1">Como funciona?</p>
-                        <p className="opacity-90 leading-relaxed">
-                           A música tocará no player do presente (estilo Spotify). 
-                           Certifique-se de usar um link público do YouTube.
-                        </p>
-                    </div>
-                 </div>
+                     return (
+                         <div 
+                            key={track.id}
+                            onClick={() => handleMusicSelect(track)}
+                            className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${isSelected ? 'bg-red-50 border-christmas-red ring-1 ring-christmas-red' : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50'}`}
+                         >
+                            <div className="flex items-center gap-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isSelected ? 'bg-christmas-red text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                    <Music className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <p className={`text-sm font-semibold ${isSelected ? 'text-christmas-darkRed' : 'text-gray-700'}`}>
+                                        {track.name}
+                                    </p>
+                                    <p className="text-[10px] text-gray-400">Faixa {track.id}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={(e) => togglePreview(track.url, e)}
+                                    className="p-2 rounded-full hover:bg-black/5 text-gray-500 transition-colors"
+                                >
+                                    {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current" />}
+                                </button>
+                                {isSelected && <CheckCircle className="w-5 h-5 text-christmas-red" />}
+                            </div>
+                         </div>
+                     )
+                 })}
+             </div>
+             
+             <div className="bg-blue-50 p-4 rounded-xl flex gap-3 items-start border border-blue-100 mt-2">
+                <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                <div className="text-sm text-blue-800">
+                    <p className="opacity-90 leading-relaxed">
+                       A música tocará no player do presente somente quando a pessoa der play.
+                    </p>
+                </div>
              </div>
           </div>
         );
@@ -549,20 +496,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
              ))}
           </div>
         );
-      case 6: // Contact
-        return (
-          <div className="space-y-4">
-            <label className="block text-sm font-medium text-gray-700">E-mail</label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => updateField('email', e.target.value)}
-              placeholder="Ex: seu.email@gmail.com"
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-christmas-red outline-none"
-            />
-          </div>
-        );
-      case 7: // Plan - CHECKOUT INTEGRATION
+      case 6: // Plan - MOVED TO STEP 6 (Was 7)
         return (
           <div className="space-y-4">
             <div 
@@ -605,12 +539,12 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
               )}
               <div className="flex justify-between items-start mb-2">
                  <div>
-                    <h3 className="font-bold text-gray-800">Anual</h3>
-                    <p className="text-xs text-gray-500">Renovação anual</p>
+                    <h3 className="font-bold text-gray-800">Mensal</h3>
+                    <p className="text-xs text-gray-500">Válido por 1 mês</p>
                  </div>
                  <div className="text-right">
                     <span className="block text-xl font-bold text-gray-900">R$ 21,00</span>
-                    <span className="text-xs text-gray-500">/ano</span>
+                    <span className="text-xs text-gray-500">/mês</span>
                  </div>
               </div>
             </div>
@@ -625,6 +559,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
     }
   };
 
+  // ... (Rest of component remains the same)
   // SUCCESS SCREEN
   if (generatedResult) {
       // ... same success screen code ...
@@ -632,8 +567,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
 
       return (
         <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col md:flex-row overflow-hidden animate-in fade-in duration-500">
-             
-             {/* Result Preview - Left Side (Desktop) */}
+             {/* Same Success Screen Content */}
              <div className="hidden md:flex w-1/2 lg:w-7/12 bg-christmas-darkRed/5 items-center justify-center p-8 relative">
                  <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#D42426 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
                  <motion.div 
@@ -658,7 +592,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                  </motion.div>
              </div>
 
-             {/* Delivery Details - Right Side */}
              <div className="w-full md:w-1/2 lg:w-5/12 bg-white flex flex-col h-full overflow-y-auto">
                  <div className="flex-1 flex flex-col items-center justify-center p-8 md:p-12 text-center">
                      
@@ -677,7 +610,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                              Seu presente foi gerado. Os dados da música e imagens estão salvos no link.
                          </p>
 
-                         {/* Localhost Warning */}
                          {isLocalhost && (
                              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6 text-left">
                                  <div className="flex items-start gap-3">
@@ -692,7 +624,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                              </div>
                          )}
 
-                         {/* QR Code Card */}
                          <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 mb-6 transform transition-transform hover:scale-105 duration-300">
                              <img src={generatedResult.qrCodeUrl} alt="QR Code" className="w-full aspect-square object-contain mb-4 rounded-lg" />
                              <div className="flex items-center justify-center gap-2 text-xs font-bold text-christmas-red uppercase tracking-widest bg-red-50 py-2 rounded-lg">
@@ -706,7 +637,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                             </div>
                          )}
 
-                         {/* Actions */}
                          <div className="space-y-3 w-full">
                              <div className="flex gap-2 cursor-pointer group" onClick={() => navigator.clipboard.writeText(generatedResult.url)}>
                                  <div className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs md:text-sm font-bold text-christmas-red truncate text-left font-mono uppercase tracking-wide group-hover:bg-red-50 transition-colors flex items-center">
@@ -753,7 +683,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                  </div>
              </div>
 
-             {/* Confetti Overlay */}
              <div className="fixed top-0 left-0 w-full h-2 bg-gradient-to-r from-red-500 via-green-500 to-gold-500 z-50"></div>
         </div>
       )
@@ -774,10 +703,8 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col md:flex-row overflow-hidden">
-      {/* Left Panel: Inputs */}
       <div className="w-full md:w-1/2 lg:w-5/12 flex flex-col h-full bg-white border-r border-gray-100 shadow-xl z-20">
         
-        {/* Header */}
         <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white">
           <div className="flex items-center gap-2">
              <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-500">
@@ -790,7 +717,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
           </div>
         </div>
 
-        {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-6 md:p-10 scroll-smooth">
            <AnimatePresence mode="wait">
              <motion.div
@@ -806,22 +732,10 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                
                {renderStepContent()}
 
-               {/* Mobile Preview Section */}
-               <div className="md:hidden mt-12 border-t border-gray-100 pt-8 pb-4">
-                  <p className="text-center text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 flex items-center justify-center gap-2">
-                    <span>📱</span> Veja como está ficando
-                  </p>
-                  <div className="flex justify-center">
-                     <div className="transform scale-[0.85] sm:scale-90 origin-top">
-                        <PhonePreview data={formData} />
-                     </div>
-                  </div>
-               </div>
              </motion.div>
            </AnimatePresence>
         </div>
 
-        {/* Footer Navigation */}
         <div className="p-6 border-t border-gray-100 bg-gray-50">
           <div className="max-w-md mx-auto flex gap-4">
              <button
@@ -830,7 +744,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
              >
                Voltar etapa
              </button>
-             {/* Only show 'Next' button if not on the last step (because plans are clickable) */}
              {currentStep < steps.length - 1 && (
                  <button
                    onClick={handleNext}
@@ -844,9 +757,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
         </div>
       </div>
 
-      {/* Right Panel: Preview (Desktop) */}
       <div className="hidden md:flex flex-1 bg-christmas-snow items-center justify-center p-8 relative overflow-hidden">
-        {/* Decorative Background Elements */}
          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#D42426 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
          <div className="absolute top-20 right-20 w-64 h-64 bg-christmas-gold/20 rounded-full blur-3xl"></div>
          <div className="absolute bottom-20 left-20 w-96 h-96 bg-christmas-red/10 rounded-full blur-3xl"></div>

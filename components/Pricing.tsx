@@ -30,11 +30,11 @@ const plans: Plan[] = [
     ]
   },
   {
-    id: 'annual',
-    name: '🎄 Plano Anual',
-    subtitle: 'Presente válido por 1 ano',
+    id: 'annual', // Mantido ID 'annual' para compatibilidade com lógica existente
+    name: '🎄 Plano Mensal',
+    subtitle: 'Presente válido por 1 mês',
     price: '21,00',
-    period: 'por ano',
+    period: 'por mês',
     recommended: false,
     ctaText: '🎄 Aproveitar agora',
     features: [
