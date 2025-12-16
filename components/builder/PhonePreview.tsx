@@ -25,9 +25,6 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
   const youtubeId = getYoutubeId(data.musicUrl || '');
   const isYoutube = !!youtubeId;
 
-  // Removed Autoplay useEffect entirely based on user request.
-  // Music will only start when isPlaying is toggled to true via user interaction.
-
   // Effect to control YouTube iframe via postMessage when isPlaying changes
   useEffect(() => {
     if (!isYoutube || !iframeRef.current) return;
@@ -76,7 +73,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
   };
 
   const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    const swipeThreshold = 50;
+    const swipeThreshold = 40; // Lower threshold for easier swipe
     if (info.offset.x < -swipeThreshold) {
         nextPhoto();
     } else if (info.offset.x > swipeThreshold) {
@@ -177,9 +174,9 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
     // Animation variants based on mode
     const variants = {
         coverflow: {
-            enter: { x: 100, opacity: 0, scale: 0.8 },
+            enter: { x: 50, opacity: 0, scale: 0.9 },
             center: { x: 0, opacity: 1, scale: 1 },
-            exit: { x: -100, opacity: 0, scale: 0.8 }
+            exit: { x: -50, opacity: 0, scale: 0.9 }
         },
         cube: {
             enter: { rotateY: 90, opacity: 0 },
@@ -187,9 +184,9 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
             exit: { rotateY: -90, opacity: 0 }
         },
         cards: {
-            enter: { y: -50, scale: 0.9, opacity: 0, zIndex: 0 },
-            center: { y: 0, scale: 1, opacity: 1, zIndex: 1 },
-            exit: { y: 20, scale: 0.95, opacity: 0, zIndex: 0 }
+            enter: { x: 50, y: -10, rotate: 5, opacity: 0 },
+            center: { x: 0, y: 0, rotate: 0, opacity: 1 },
+            exit: { x: -50, y: 10, rotate: -5, opacity: 0 }
         },
         flip: {
             enter: { rotateX: 90, opacity: 0 },
@@ -203,7 +200,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
 
     return (
         <div className="relative w-full h-full perspective-1000 cursor-grab active:cursor-grabbing">
-             <AnimatePresence mode='wait'>
+             <AnimatePresence mode='popLayout'>
                 <motion.div
                     key={activePhoto + currentPhotoIndex} // Force re-render on change
                     variants={selectedVariant}
@@ -212,30 +209,41 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
                     exit="exit"
                     drag="x"
                     dragConstraints={{ left: 0, right: 0 }}
-                    dragElastic={1}
+                    dragElastic={0.2} // More responsive feeling
                     onDragEnd={handleDragEnd}
-                    transition={{ duration: 0.5, type: 'spring', stiffness: 300, damping: 30 }}
-                    className="w-full h-full rounded-lg overflow-hidden shadow-2xl bg-gray-200"
-                    style={{ transformStyle: 'preserve-3d' }}
+                    transition={{ 
+                        type: 'spring', 
+                        stiffness: 400, // Higher stiffness = Snappier
+                        damping: 30,    // Lower damping = Less friction
+                        mass: 0.8
+                    }}
+                    className="w-full h-full rounded-lg overflow-hidden shadow-2xl bg-gray-200 absolute top-0 left-0"
+                    style={{ transformStyle: 'preserve-3d', backfaceVisibility: 'hidden' }}
                 >
-                    <img src={activePhoto} className="w-full h-full object-cover pointer-events-none" alt="Memory" />
+                    <img src={activePhoto} className="w-full h-full object-cover pointer-events-none" alt="Memory" loading="eager" />
                 </motion.div>
              </AnimatePresence>
 
-             {/* Navigation Overlay */}
+             {/* Navigation Overlay - Improved Arrows */}
              {photos.length > 1 && (
                  <>
-                    <button onClick={(e) => { e.stopPropagation(); prevPhoto(); }} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-1 rounded-full backdrop-blur-sm transition-all z-20 md:flex hidden">
-                        <ChevronLeft className="w-5 h-5" />
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); prevPhoto(); }} 
+                        className="absolute -left-2 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full backdrop-blur-sm transition-all z-20 active:scale-95"
+                    >
+                        <ChevronLeft className="w-6 h-6" />
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); nextPhoto(); }} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-1 rounded-full backdrop-blur-sm transition-all z-20 md:flex hidden">
-                        <ChevronRight className="w-5 h-5" />
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); nextPhoto(); }} 
+                        className="absolute -right-2 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full backdrop-blur-sm transition-all z-20 active:scale-95"
+                    >
+                        <ChevronRight className="w-6 h-6" />
                     </button>
                     
                     {/* Dots */}
-                    <div className="absolute bottom-2 left-0 w-full flex justify-center gap-1.5 z-20">
+                    <div className="absolute bottom-2 left-0 w-full flex justify-center gap-1.5 z-20 pointer-events-none">
                         {photos.slice(0, 5).map((_, i) => (
-                            <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${i === currentPhotoIndex ? 'bg-white w-3' : 'bg-white/50'}`}></div>
+                            <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all duration-300 shadow-sm ${i === currentPhotoIndex ? 'bg-white w-4' : 'bg-white/50'}`}></div>
                         ))}
                     </div>
                  </>
@@ -358,7 +366,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
                  </div>
 
                  {/* Photo Gallery with Modes - Flexible grow */}
-                 <div className="w-full aspect-square relative max-w-[260px] mx-auto shrink-0">
+                 <div className="w-full aspect-square relative max-w-[260px] mx-auto shrink-0 select-none">
                      {renderPhotoImage()}
                  </div>
                  

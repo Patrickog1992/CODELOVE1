@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Upload, Music, Check, X, Trash2, Search, PlayCircle, Loader2, Copy, Share2, Download, CheckCircle, AlertTriangle, Info, Image as ImageIcon, Link as LinkIcon, Camera, Youtube, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Upload, Music, Check, X, Trash2, Search, PlayCircle, Loader2, Copy, Share2, Download, CheckCircle, AlertTriangle, Info, Image as ImageIcon, Link as LinkIcon, Camera, Youtube, ExternalLink, ImagePlus, CloudLightning } from 'lucide-react';
 import { BuilderData, PhotoMode, BackgroundType } from '../../types';
 import { PhonePreview } from './PhonePreview';
 
@@ -61,7 +61,10 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
 
   // Photo Input State
   const [photoInputMode, setPhotoInputMode] = useState<'gallery' | 'upload'>('gallery');
-  const [isLoadingWidget, setIsLoadingWidget] = useState(false);
+  
+  // Custom Upload State
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // State for Generation Process
   const [isGenerating, setIsGenerating] = useState(false);
@@ -167,83 +170,69 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     updateField('photos', newPhotos);
   };
 
-  // CLOUDINARY WIDGET INTEGRATION
-  const openCloudinaryWidget = () => {
-    if (formData.photos.length >= 8) {
-        alert("Você já atingiu o limite de 8 fotos!");
-        return;
-    }
+  // --- CUSTOM UPLOAD LOGIC (Headless Cloudinary) ---
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
 
-    setIsLoadingWidget(true);
+      const filesArray = Array.from(files) as File[];
+      const remainingSlots = 8 - formData.photos.length;
 
-    const checkAndOpen = (retries = 0) => {
-        // @ts-ignore
-        if (window.cloudinary) {
-            try {
-                // @ts-ignore
-                const widget = window.cloudinary.createUploadWidget(
-                    {
-                        cloudName: "dzi28teuq",
-                        uploadPreset: "natal-upload",
-                        multiple: true,
-                        maxFiles: 8 - formData.photos.length,
-                        sources: ["local", "camera"],
-                        folder: "presentes-natal",
-                        clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
-                        language: "pt",
-                        text: {
-                            "pt": {
-                                "menu": { "files": "Meus Arquivos" },
-                                "local": { "browse": "Selecionar Fotos" },
-                                "or": "Ou"
-                            }
-                        },
-                        styles: {
-                            palette: {
-                                window: "#FFFFFF",
-                                windowBorder: "#90A0B3",
-                                tabIcon: "#D42426",
-                                menuIcons: "#5A616A",
-                                textDark: "#000000",
-                                textLight: "#FFFFFF",
-                                link: "#D42426",
-                                action: "#D42426",
-                                inactiveTabIcon: "#0E2F5A",
-                                error: "#F44235",
-                                inProgress: "#D42426",
-                                complete: "#20B832",
-                                sourceBg: "#E4EBF1"
-                            }
-                        }
-                    },
-                    (error: any, result: any) => {
-                        if (!error && result && result.event === "success") {
-                            const url = result.info.secure_url;
-                            setFormData(prev => {
-                                if (prev.photos.includes(url)) return prev;
-                                return { ...prev, photos: [...prev.photos, url] };
-                            });
-                        }
-                    }
-                );
-                widget.open();
-                setIsLoadingWidget(false);
-            } catch (e) {
-                console.error("Widget error", e);
-                setIsLoadingWidget(false);
-            }
-        } else {
-            if (retries < 5) {
-                setTimeout(() => checkAndOpen(retries + 1), 500);
-            } else {
-                alert("Erro de conexão. O componente de upload não carregou.");
-                setIsLoadingWidget(false);
-            }
-        }
-    };
+      if (filesArray.length > remainingSlots) {
+          alert(`Você só pode adicionar mais ${remainingSlots} fotos.`);
+          return;
+      }
 
-    checkAndOpen();
+      setIsUploading(true);
+
+      const uploadedUrls: string[] = [];
+
+      // Process sequentially to maintain order somewhat or just Promise.all
+      // Using simple loop for better error handling per file
+      for (const file of filesArray) {
+          // Verify it's an image
+          if (!file.type.startsWith('image/')) {
+              continue;
+          }
+
+          const uploadData = new FormData();
+          uploadData.append('file', file);
+          uploadData.append('upload_preset', 'natal-upload'); // Using existing preset
+          uploadData.append('folder', 'presentes-natal');
+          // uploadData.append('cloud_name', 'dzi28teuq'); // Usually not needed in FormData for unsigned if URL is correct
+
+          try {
+              const response = await fetch('https://api.cloudinary.com/v1_1/dzi28teuq/image/upload', {
+                  method: 'POST',
+                  body: uploadData
+              });
+              
+              const data = await response.json();
+              if (data.secure_url) {
+                  uploadedUrls.push(data.secure_url);
+              } else {
+                  console.error("Upload failed for file", file.name, data);
+              }
+          } catch (err) {
+              console.error("Network error uploading", err);
+              alert("Erro ao enviar imagem. Verifique sua conexão.");
+          }
+      }
+
+      if (uploadedUrls.length > 0) {
+          setFormData(prev => ({
+              ...prev,
+              photos: [...prev.photos, ...uploadedUrls]
+          }));
+      }
+
+      setIsUploading(false);
+      // Reset input
+      if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+      }
   };
+
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -363,37 +352,48 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                 </div>
             )}
 
-            {/* Upload Content (Cloudinary) */}
+            {/* Custom Upload Content (Replaces Widget) */}
             {photoInputMode === 'upload' && (
                 <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
-                    <div className="bg-christmas-snow p-4 rounded-xl border border-red-100 text-center space-y-3">
-                         <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto shadow-sm text-christmas-red">
-                             <Camera className="w-6 h-6" />
-                         </div>
-                         <div>
-                             <h4 className="font-bold text-gray-900 text-sm">Upload Inteligente</h4>
-                             <p className="text-xs text-gray-500 mt-1 max-w-[250px] mx-auto">
-                                Suas fotos serão otimizadas automaticamente para garantir que o QR Code funcione perfeitamente.
-                             </p>
-                         </div>
-                         
-                        <button 
-                          onClick={openCloudinaryWidget}
-                          disabled={isLoadingWidget}
-                          className="w-full py-3 bg-gradient-to-r from-christmas-red to-[#ff8fa3] text-white rounded-xl font-bold shadow-lg shadow-red-200 hover:shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                        >
-                            {isLoadingWidget ? (
-                                <>
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                    Carregando...
-                                </>
-                            ) : (
-                                <>
-                                    <Upload className="w-5 h-5" />
-                                    Enviar fotos do celular
-                                </>
-                            )}
-                        </button>
+                    
+                    {/* Hidden Input */}
+                    <input 
+                        type="file" 
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        className="hidden" 
+                        accept="image/*"
+                        multiple
+                    />
+
+                    {/* Custom Drop Area */}
+                    <div 
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`group relative border-2 border-dashed border-red-200 bg-red-50 hover:bg-red-100 transition-colors rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer min-h-[160px] ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
+                    >
+                         {isUploading ? (
+                             <div className="flex flex-col items-center animate-pulse">
+                                 <Loader2 className="w-10 h-10 text-christmas-red animate-spin mb-3" />
+                                 <p className="text-sm font-bold text-christmas-red">Enviando fotos...</p>
+                             </div>
+                         ) : (
+                             <>
+                                <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm group-hover:scale-110 transition-transform">
+                                    <ImagePlus className="w-7 h-7 text-christmas-red" />
+                                </div>
+                                <h4 className="font-bold text-gray-800 text-sm">Toque para adicionar fotos</h4>
+                                <p className="text-xs text-gray-500 mt-1 max-w-[200px] text-center">
+                                    Escolha da sua galeria. (Máx 8 fotos)
+                                </p>
+                             </>
+                         )}
+                    </div>
+
+                    <div className="flex gap-2 items-start bg-blue-50 p-3 rounded-lg">
+                        <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                        <p className="text-xs text-blue-700 leading-snug">
+                            Suas fotos são otimizadas automaticamente para o QR Code. O envio é rápido e seguro.
+                        </p>
                     </div>
                 </div>
             )}
