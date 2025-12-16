@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { BuilderData } from '../../types';
 import { SnowEffect } from '../SnowEffect';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Play, Pause, Volume2, Music } from 'lucide-react';
 
 interface PhonePreviewProps {
@@ -25,30 +25,10 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
   const youtubeId = getYoutubeId(data.musicUrl || '');
   const isYoutube = !!youtubeId;
 
-  // Auto-play audio when mounted or when URL changes
-  useEffect(() => {
-    setIsPlaying(false); // Reset state on change
-    
-    if (isYoutube) {
-        // YouTube autoplay is restricted by browsers, but we set state to be ready
-        // Real autoplay needs user interaction usually
-        setIsPlaying(true); 
-    } else if (audioRef.current && data.musicUrl) {
-        audioRef.current.volume = 0.5;
-        const playPromise = audioRef.current.play();
-        
-        if (playPromise !== undefined) {
-          playPromise.then(() => {
-            setIsPlaying(true);
-          }).catch(error => {
-            console.log("Audio autoplay prevented by browser policy");
-            setIsPlaying(false);
-          });
-        }
-    }
-  }, [data.musicUrl, isYoutube]);
+  // Removed Autoplay useEffect entirely based on user request.
+  // Music will only start when isPlaying is toggled to true via user interaction.
 
-  // Effect to control YouTube iframe via postMessage
+  // Effect to control YouTube iframe via postMessage when isPlaying changes
   useEffect(() => {
     if (!isYoutube || !iframeRef.current) return;
 
@@ -64,24 +44,24 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
     }
   }, [isPlaying, isYoutube]);
 
+  // Effect to control standard Audio when isPlaying changes
+  useEffect(() => {
+      if (isYoutube || !audioRef.current) return;
+
+      if (isPlaying) {
+          audioRef.current.play().catch(e => {
+              console.log("Interaction required for audio", e);
+              setIsPlaying(false);
+          });
+      } else {
+          audioRef.current.pause();
+      }
+  }, [isPlaying, isYoutube]);
+
 
   const toggleAudio = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-
-    if (isYoutube) {
-        setIsPlaying(!isPlaying);
-        return;
-    }
-
-    if (!audioRef.current) return;
-
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      audioRef.current.play();
-      setIsPlaying(true);
-    }
+    setIsPlaying(!isPlaying);
   };
 
   // Handle Photo Navigation
@@ -93,6 +73,15 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
   
   const prevPhoto = () => {
     setCurrentPhotoIndex((prev) => (prev - 1 + photos.length) % photos.length);
+  };
+
+  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    const swipeThreshold = 50;
+    if (info.offset.x < -swipeThreshold) {
+        nextPhoto();
+    } else if (info.offset.x > swipeThreshold) {
+        prevPhoto();
+    }
   };
 
   // Helper to render background OVERLAYS (not replacing the background)
@@ -213,7 +202,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
     const selectedVariant = variants[mode as keyof typeof variants] || variants.coverflow;
 
     return (
-        <div className="relative w-full h-full perspective-1000">
+        <div className="relative w-full h-full perspective-1000 cursor-grab active:cursor-grabbing">
              <AnimatePresence mode='wait'>
                 <motion.div
                     key={activePhoto + currentPhotoIndex} // Force re-render on change
@@ -221,21 +210,25 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
                     initial="enter"
                     animate="center"
                     exit="exit"
+                    drag="x"
+                    dragConstraints={{ left: 0, right: 0 }}
+                    dragElastic={1}
+                    onDragEnd={handleDragEnd}
                     transition={{ duration: 0.5, type: 'spring', stiffness: 300, damping: 30 }}
                     className="w-full h-full rounded-lg overflow-hidden shadow-2xl bg-gray-200"
                     style={{ transformStyle: 'preserve-3d' }}
                 >
-                    <img src={activePhoto} className="w-full h-full object-cover" alt="Memory" />
+                    <img src={activePhoto} className="w-full h-full object-cover pointer-events-none" alt="Memory" />
                 </motion.div>
              </AnimatePresence>
 
              {/* Navigation Overlay */}
              {photos.length > 1 && (
                  <>
-                    <button onClick={(e) => { e.stopPropagation(); prevPhoto(); }} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-1 rounded-full backdrop-blur-sm transition-all z-20">
+                    <button onClick={(e) => { e.stopPropagation(); prevPhoto(); }} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-1 rounded-full backdrop-blur-sm transition-all z-20 md:flex hidden">
                         <ChevronLeft className="w-5 h-5" />
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); nextPhoto(); }} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-1 rounded-full backdrop-blur-sm transition-all z-20">
+                    <button onClick={(e) => { e.stopPropagation(); nextPhoto(); }} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-1 rounded-full backdrop-blur-sm transition-all z-20 md:flex hidden">
                         <ChevronRight className="w-5 h-5" />
                     </button>
                     
@@ -295,7 +288,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
                 ref={iframeRef}
                 width="1" 
                 height="1" 
-                src={`https://www.youtube.com/embed/${youtubeId}?enablejsapi=1&controls=0&loop=1&playlist=${youtubeId}&autoplay=1&playsinline=1`} 
+                src={`https://www.youtube.com/embed/${youtubeId}?enablejsapi=1&controls=0&loop=1&playlist=${youtubeId}&autoplay=0&playsinline=1`} 
                 title="YouTube Audio Player" 
                 allow="autoplay; encrypted-media"
                 loading="eager"
