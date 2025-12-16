@@ -12,31 +12,32 @@ const steps = [
   { title: 'Titulo da página', description: 'Escreva o titulo dedicatório para a página.' },
   { title: 'Mensagem', description: 'Escreva uma mensagem especial. Seja criativo e demonstre todo seu carinho.' },
   { title: 'Data de início', description: 'Informe a data de início que simbolize o início de uma união, relacionamento, amizade, etc.' },
-  { title: 'Fotos do Casal', description: 'Personalize com fotos especiais. Você pode usar nossa galeria, colar um link ou enviar do celular.' },
+  { title: 'Fotos do Casal', description: 'Personalize com fotos especiais. Escolha da galeria ou envie do seu celular.' },
   { title: 'Música dedicada', description: 'Escolha a trilha sonora perfeita para o momento.' },
   { title: 'Animação de fundo', description: 'Escolha uma animação de fundo para a página.' },
   { title: 'Informações de contato', description: 'Preencha as informações de contato para receber o link e o QR Code.' },
   { title: 'Escolha seu plano', description: 'Selecione o plano que melhor atende às suas necessidades.' },
 ];
 
-// Curated Unsplash Images for Christmas/Romance
+// Reliable Unsplash Images
 const PRESET_IMAGES = [
-  "https://images.unsplash.com/photo-1543589077-47d81606c1bf?w=500&q=80",
-  "https://images.unsplash.com/photo-1512389142860-9c449e58a543?w=500&q=80",
-  "https://images.unsplash.com/photo-1576919228236-a097c32a58be?w=500&q=80",
-  "https://images.unsplash.com/photo-1545048702-79362596cdc9?w=500&q=80",
-  "https://images.unsplash.com/photo-1513297887119-d46091b24bfa?w=500&q=80",
-  "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=500&q=80",
-  "https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=500&q=80",
-  "https://images.unsplash.com/photo-1516723225219-c0c5417ae417?w=500&q=80"
+  "https://images.unsplash.com/photo-1511285560982-1356c11d4606?w=500&q=80", // Wedding/Couple
+  "https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=500&q=80", // Christmas Lights
+  "https://images.unsplash.com/photo-1543589077-47d81606c1bf?w=500&q=80", // Couple Snow
+  "https://images.unsplash.com/photo-1621800100799-a8685161048f?w=500&q=80", // Hands holding
+  "https://images.unsplash.com/photo-1516723225219-c0c5417ae417?w=500&q=80", // Family Christmas
+  "https://images.unsplash.com/photo-1523438885200-e635ba2c371e?w=500&q=80", // Sparkler
+  "https://images.unsplash.com/photo-1513297887119-d46091b24bfa?w=500&q=80", // Christmas Tree
+  "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=500&q=80"  // Gift
 ];
 
-// Real Audio URLs
+// Reliable Audio URLs (Pixabay)
 const PRESET_MUSIC = [
-  { name: "Jingle Bells (Clássica)", url: "https://actions.google.com/sounds/v1/holidays/jingle_bells.ogg" },
-  { name: "We Wish You a Merry Christmas", url: "https://actions.google.com/sounds/v1/holidays/we_wish_you_a_merry_christmas.ogg" },
+  { name: "Jingle Bells (Piano)", url: "https://cdn.pixabay.com/download/audio/2023/11/17/audio_51d28362d2.mp3" },
+  { name: "We Wish You a Merry Christmas", url: "https://cdn.pixabay.com/download/audio/2022/11/24/audio_9242502b66.mp3" },
   { name: "Piano Romântico", url: "https://cdn.pixabay.com/download/audio/2022/11/22/audio_febc508520.mp3?filename=christmas-piano-126868.mp3" }, 
-  { name: "Noite Feliz (Instrumental)", url: "https://cdn.pixabay.com/download/audio/2022/10/25/audio_51740954b4.mp3?filename=silent-night-123473.mp3" }
+  { name: "Noite Feliz (Suave)", url: "https://cdn.pixabay.com/download/audio/2023/11/27/audio_730b2c151c.mp3" },
+  { name: "Jazz de Natal", url: "https://cdn.pixabay.com/download/audio/2022/12/16/audio_03d6978502.mp3" }
 ];
 
 export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
@@ -55,9 +56,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
   });
 
   // Photo Input State
-  const [photoInputMode, setPhotoInputMode] = useState<'gallery' | 'url' | 'upload'>('gallery');
-  const [customPhotoUrl, setCustomPhotoUrl] = useState('');
-  const [isValidatingUrl, setIsValidatingUrl] = useState(false);
+  const [photoInputMode, setPhotoInputMode] = useState<'gallery' | 'upload'>('gallery');
 
   // State for Generation Process
   const [isGenerating, setIsGenerating] = useState(false);
@@ -141,33 +140,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
         if (currentPhotos.length >= 8) return;
         updateField('photos', [...currentPhotos, url]);
     }
-  };
-
-  const addCustomUrl = () => {
-      if (!customPhotoUrl) return;
-      
-      // BLOCK INSTAGRAM LINKS
-      if (customPhotoUrl.includes('instagram.com')) {
-          alert("⚠️ Links do Instagram não funcionam!\n\nO Instagram bloqueia o acesso externo às fotos. Por favor, use a opção 'Enviar Fotos' para carregar a imagem do seu celular.");
-          return;
-      }
-
-      if (formData.photos.length >= 8) return;
-
-      setIsValidatingUrl(true);
-
-      // Validate Image
-      const img = new Image();
-      img.onload = () => {
-           setIsValidatingUrl(false);
-           updateField('photos', [...formData.photos, customPhotoUrl]);
-           setCustomPhotoUrl('');
-      };
-      img.onerror = () => {
-          setIsValidatingUrl(false);
-          alert("❌ Não conseguimos carregar essa imagem.\n\nVerifique se:\n1. O link é direto (termina em .jpg, .png)\n2. O link é público\n3. O site permite acesso externo");
-      };
-      img.src = customPhotoUrl;
   };
 
   const removePhoto = (index: number) => {
@@ -284,7 +256,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
             />
           </div>
         );
-      case 3: // Photos (Updated for Cloudinary)
+      case 3: // Photos (Updated)
         return (
           <div className="space-y-6">
             
@@ -301,12 +273,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                     className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${photoInputMode === 'upload' ? 'bg-white text-christmas-red shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                     Enviar Fotos
-                </button>
-                <button 
-                    onClick={() => setPhotoInputMode('url')}
-                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${photoInputMode === 'url' ? 'bg-white text-christmas-red shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                    Link
                 </button>
             </div>
 
@@ -331,35 +297,6 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                                 )}
                             </div>
                         ))}
-                    </div>
-                </div>
-            )}
-
-            {/* URL Content */}
-            {photoInputMode === 'url' && (
-                <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
-                    <div className="bg-green-50 p-3 rounded-lg text-xs text-green-700 border border-green-100 flex gap-2 items-start">
-                        <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                        <div>
-                            <strong>Dica Importante:</strong> Links do Instagram/Facebook NÃO funcionam aqui.<br/>Use a aba "Enviar Fotos" para carregar direto do celular.
-                        </div>
-                    </div>
-                    <div className="flex gap-2">
-                        <input 
-                            type="text" 
-                            value={customPhotoUrl}
-                            onChange={(e) => setCustomPhotoUrl(e.target.value)}
-                            placeholder="https://..."
-                            disabled={isValidatingUrl}
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-christmas-red outline-none disabled:bg-gray-100"
-                        />
-                        <button 
-                            onClick={addCustomUrl}
-                            disabled={isValidatingUrl || !customPhotoUrl}
-                            className="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        >
-                            {isValidatingUrl ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Adicionar'}
-                        </button>
                     </div>
                 </div>
             )}
@@ -410,19 +347,24 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
             )}
             
              <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Modo de exibição</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Efeito de transição</label>
               <div className="grid grid-cols-2 gap-2">
-                {(['coverflow', 'cube', 'cards', 'flip'] as PhotoMode[]).map((mode) => (
+                {[
+                  {id: 'coverflow', label: 'Deslizar'},
+                  {id: 'cube', label: 'Cubo 3D'},
+                  {id: 'cards', label: 'Baralho'},
+                  {id: 'flip', label: 'Girar'}
+                ].map((mode) => (
                   <button
-                    key={mode}
-                    onClick={() => updateField('photoMode', mode)}
+                    key={mode.id}
+                    onClick={() => updateField('photoMode', mode.id)}
                     className={`px-3 py-2 rounded-lg text-xs font-medium capitalize transition-all border ${
-                      formData.photoMode === mode
+                      formData.photoMode === mode.id
                         ? 'bg-christmas-red text-white border-christmas-red'
                         : 'bg-white text-gray-700 border-gray-200'
                     }`}
                   >
-                    {mode}
+                    {mode.label}
                   </button>
                 ))}
               </div>
