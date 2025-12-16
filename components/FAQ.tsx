@@ -43,12 +43,8 @@ export const FAQ: React.FC = () => {
 
         <div className="space-y-4">
           {faqItems.map((item, index) => (
-            <motion.div
+            <div
               key={index}
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
               className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
             >
               <button
@@ -75,7 +71,7 @@ export const FAQ: React.FC = () => {
                   </motion.div>
                 )}
               </AnimatePresence>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

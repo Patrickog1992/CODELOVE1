@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Star, Quote } from 'lucide-react';
 import { Testimonial } from '../types';
 
@@ -41,12 +40,8 @@ export const Testimonials: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {testimonials.map((testimonial, index) => (
-            <motion.div
+            <div
               key={index}
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1, duration: 0.5 }}
               className="bg-christmas-snow p-6 rounded-2xl relative border border-gray-100"
             >
               <Quote className="absolute top-4 right-4 text-gray-200 w-8 h-8 rotate-180" />
@@ -64,7 +59,7 @@ export const Testimonials: React.FC = () => {
                   <span className="text-xs text-gray-500">{testimonial.time}</span>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
 

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Upload, Music, Check, X, Trash2, Search, PlayCircle, Loader2, Copy, Share2, Download, CheckCircle, AlertTriangle, Info, Image as ImageIcon, Link as LinkIcon, Camera, Youtube } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Upload, Music, Check, X, Trash2, Search, PlayCircle, Loader2, Copy, Share2, Download, CheckCircle, AlertTriangle, Info, Image as ImageIcon, Link as LinkIcon, Camera, Youtube, ExternalLink } from 'lucide-react';
 import { BuilderData, PhotoMode, BackgroundType } from '../../types';
 import { PhonePreview } from './PhonePreview';
 
@@ -580,7 +580,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     }
   };
 
-  // SUCCESS SCREEN (Unchanged from previous logic, just referencing for context)
+  // SUCCESS SCREEN
   if (generatedResult) {
       // ... same success screen code
       const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -663,15 +663,26 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                                  </button>
                              </div>
                              
-                             <a 
-                                href={generatedResult.qrCodeUrl} 
-                                download="qrcode-natal.png"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="w-full bg-christmas-red text-white font-bold py-4 rounded-xl hover:bg-christmas-darkRed flex items-center justify-center gap-2 shadow-lg shadow-red-200 transition-all hover:-translate-y-1"
-                             >
-                                 <Download className="w-5 h-5" /> Baixar QR Code
-                             </a>
+                             <div className="grid grid-cols-2 gap-2">
+                                 <a 
+                                    href={generatedResult.qrCodeUrl} 
+                                    download="qrcode-natal.png"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="bg-christmas-red text-white font-bold py-4 rounded-xl hover:bg-christmas-darkRed flex items-center justify-center gap-2 shadow-lg shadow-red-200 transition-all hover:-translate-y-1 text-sm"
+                                 >
+                                     <Download className="w-4 h-4" /> Baixar Imagem
+                                 </a>
+                                 
+                                 <a 
+                                     href={generatedResult.qrCodeUrl}
+                                     target="_blank"
+                                     rel="noopener noreferrer"
+                                     className="bg-gray-800 text-white font-bold py-4 rounded-xl hover:bg-black flex items-center justify-center gap-2 shadow-lg transition-all hover:-translate-y-1 text-sm"
+                                 >
+                                     <ExternalLink className="w-4 h-4" /> Link QR Code
+                                 </a>
+                             </div>
                              
                              <button className="w-full bg-[#25D366] text-white font-bold py-4 rounded-xl hover:opacity-90 flex items-center justify-center gap-2 shadow-lg shadow-green-200 transition-all hover:-translate-y-1">
                                  <Share2 className="w-5 h-5" /> Enviar no WhatsApp

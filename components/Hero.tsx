@@ -13,52 +13,28 @@ export const Hero: React.FC<HeroProps> = ({ onOpenBuilder }) => {
       <SnowEffect />
       
       <div className="container mx-auto px-4 relative z-10 flex flex-col items-center text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-6 border border-white/20"
-        >
+        <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-6 border border-white/20">
           <span className="text-xl">🎁</span>
           <span className="text-sm font-medium tracking-wide uppercase">Vamos começar?</span>
-        </motion.div>
+        </div>
 
-        <motion.h1 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-4xl md:text-6xl font-extrabold mb-6 leading-tight max-w-4xl"
-        >
+        <h1 className="text-4xl md:text-6xl font-extrabold mb-6 leading-tight max-w-4xl">
           Presenteie com amor <br className="hidden md:block" />neste Natal 🎄
-        </motion.h1>
+        </h1>
 
-        <motion.p 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-lg md:text-xl text-white/90 max-w-2xl mb-10 leading-relaxed"
-        >
+        <p className="text-lg md:text-xl text-white/90 max-w-2xl mb-10 leading-relaxed">
           Crie uma página natalina personalizada para alguém especial e surpreenda com uma mensagem de Natal cheia de amor, memórias e emoção — um presente que ficará para sempre.
-        </motion.p>
+        </p>
 
-        <motion.button
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+        <button
           onClick={onOpenBuilder}
-          className="bg-christmas-gold text-christmas-darkRed text-lg font-bold py-4 px-10 rounded-full shadow-lg shadow-christmas-darkRed/50 hover:bg-yellow-300 transition-colors flex items-center gap-2 mb-8"
+          className="bg-christmas-gold text-christmas-darkRed text-lg font-bold py-4 px-10 rounded-full shadow-lg shadow-christmas-darkRed/50 hover:bg-yellow-300 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 mb-8"
         >
           <Heart className="w-5 h-5 fill-current" />
           🎄 Criar meu presente de Natal
-        </motion.button>
+        </button>
 
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="flex flex-col items-center gap-2"
-        >
+        <div className="flex flex-col items-center gap-2">
           <div className="flex -space-x-4">
              {[1, 2, 3, 4, 5].map((i) => (
                <img 
@@ -73,7 +49,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenBuilder }) => {
              <Star className="w-4 h-4 fill-current" />
              <span>Mais de 71.346 usuários emocionados</span>
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Decorative Wave */}

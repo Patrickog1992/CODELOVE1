@@ -1,17 +1,10 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 
 export const MockupSection: React.FC = () => {
   return (
     <section className="py-12 bg-christmas-snow overflow-hidden">
       <div className="container mx-auto px-4 text-center">
-        <motion.div
-          initial={{ y: 50, opacity: 0 }}
-          whileInView={{ y: 0, opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          className="relative max-w-[300px] md:max-w-[360px] mx-auto"
-        >
+        <div className="relative max-w-[300px] md:max-w-[360px] mx-auto">
           {/* Phone Frame */}
           <div className="relative border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[600px] w-[300px] md:w-[320px] shadow-2xl mx-auto flex flex-col overflow-hidden ring-4 ring-gray-900/10">
             {/* Screen Content */}
@@ -52,7 +45,7 @@ export const MockupSection: React.FC = () => {
           
           {/* Decorative Elements behind phone */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-red-500/10 rounded-full blur-3xl -z-10"></div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

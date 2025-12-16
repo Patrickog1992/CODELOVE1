@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Edit3, CreditCard, Gift, HeartHandshake } from 'lucide-react';
 
 const steps = [
@@ -43,12 +42,8 @@ export const HowItWorks: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {steps.map((step, index) => (
-            <motion.div
+            <div
               key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1, duration: 0.5 }}
               className="relative p-8 rounded-2xl bg-christmas-snow hover:bg-white hover:shadow-xl transition-all border border-transparent hover:border-red-100 group"
             >
               <div className="absolute -top-4 -right-4 w-10 h-10 bg-christmas-red text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
@@ -59,7 +54,7 @@ export const HowItWorks: React.FC = () => {
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">🎄 {step.title}</h3>
               <p className="text-gray-600 text-sm leading-relaxed">{step.description}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
 

@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Clock, Snowflake, Music, Globe, QrCode, Link } from 'lucide-react';
 import { Feature } from '../types';
 
@@ -53,12 +52,8 @@ export const Features: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
-            <motion.div
+            <div
               key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1, duration: 0.5 }}
               className="bg-white/5 backdrop-blur-sm border border-white/10 p-8 rounded-2xl hover:bg-white/10 transition-colors"
             >
               <div className="w-12 h-12 bg-christmas-gold/20 text-christmas-gold rounded-full flex items-center justify-center mb-6">
@@ -66,7 +61,7 @@ export const Features: React.FC = () => {
               </div>
               <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
               <p className="text-white/70 leading-relaxed">{feature.description}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

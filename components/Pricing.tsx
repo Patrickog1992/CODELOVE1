@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Check, X, Gift } from 'lucide-react';
 import { Plan } from '../types';
 
@@ -65,12 +64,8 @@ export const Pricing: React.FC<PricingProps> = ({ onOpenBuilder }) => {
 
         <div className="flex flex-col lg:flex-row justify-center items-stretch gap-8 max-w-5xl mx-auto">
           {plans.map((plan, index) => (
-            <motion.div
+            <div
               key={plan.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1, duration: 0.5 }}
               className={`relative flex-1 rounded-3xl p-8 flex flex-col ${
                 plan.recommended 
                   ? 'bg-white shadow-2xl border-2 border-christmas-gold transform scale-100 lg:scale-105 z-10' 
@@ -132,7 +127,7 @@ export const Pricing: React.FC<PricingProps> = ({ onOpenBuilder }) => {
               <div className="text-center mt-3">
                   <button onClick={onOpenBuilder} className="text-sm text-gray-400 underline hover:text-gray-600">🎁 Criar presente</button>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
