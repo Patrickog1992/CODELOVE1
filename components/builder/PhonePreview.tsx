@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { BuilderData } from '../../types';
 import { SnowEffect } from '../SnowEffect';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Pause, Volume2, Music } from 'lucide-react';
 
 interface PhonePreviewProps {
   data: BuilderData;
@@ -11,15 +11,37 @@ interface PhonePreviewProps {
 export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Auto-play audio when mounted or when URL changes
   useEffect(() => {
     if (audioRef.current && data.musicUrl) {
         audioRef.current.volume = 0.5;
-        // Attempt to play (might be blocked by browser if no user interaction yet)
-        audioRef.current.play().catch(e => console.log("Audio autoplay blocked until user interaction"));
+        const playPromise = audioRef.current.play();
+        
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            setIsPlaying(true);
+          }).catch(error => {
+            console.log("Audio autoplay prevented by browser policy");
+            setIsPlaying(false);
+          });
+        }
     }
   }, [data.musicUrl]);
+
+  const toggleAudio = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!audioRef.current) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
 
   // Handle Photo Navigation
   const photos = data.photos && data.photos.length > 0 ? data.photos : ['https://images.unsplash.com/photo-1543589077-47d81606c1bf?w=500&q=80'];
@@ -39,11 +61,12 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
         return (
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
              {[...Array(20)].map((_, i) => (
-               <div key={i} className="absolute text-red-500 animate-fall text-2xl" style={{
+               <div key={i} className="absolute text-red-500 animate-fall text-3xl" style={{
                  left: `${Math.random() * 100}%`,
                  top: `-50px`,
                  animationDuration: `${Math.random() * 3 + 4}s`,
-                 animationDelay: `${Math.random() * 5}s`
+                 animationDelay: `${Math.random() * 5}s`,
+                 opacity: 0.8
                }}>❤️</div>
              ))}
           </div>
@@ -52,9 +75,9 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
         return (
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
             {/* Transparent overlay to make stars pop slightly */}
-            <div className="absolute inset-0 bg-black/20"></div> 
+            <div className="absolute inset-0 bg-black/40 mix-blend-multiply"></div> 
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="absolute h-0.5 w-24 bg-gradient-to-r from-transparent via-white to-transparent animate-comet" style={{
+              <div key={i} className="absolute h-1 w-32 bg-gradient-to-r from-transparent via-white to-transparent animate-comet shadow-[0_0_10px_rgba(255,255,255,0.8)]" style={{
                 top: `${Math.random() * 70}%`,
                 left: '-100px',
                 animationDuration: `${Math.random() * 3 + 4}s`,
@@ -66,11 +89,11 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
       case 'stars_meteors':
         return (
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
-             <div className="absolute inset-0 bg-black/30"></div>
-             {[...Array(40)].map((_, i) => (
-               <div key={i} className="absolute bg-white rounded-full animate-twinkle" style={{
-                 width: Math.random() > 0.5 ? '2px' : '3px',
-                 height: Math.random() > 0.5 ? '2px' : '3px',
+             <div className="absolute inset-0 bg-black/50 mix-blend-multiply"></div>
+             {[...Array(50)].map((_, i) => (
+               <div key={i} className="absolute bg-white rounded-full animate-twinkle shadow-[0_0_5px_white]" style={{
+                 width: Math.random() > 0.5 ? '2px' : '4px',
+                 height: Math.random() > 0.5 ? '2px' : '4px',
                  top: `${Math.random() * 100}%`,
                  left: `${Math.random() * 100}%`,
                  animationDuration: `${Math.random() * 3 + 1}s`,
@@ -82,15 +105,15 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
       case 'aurora':
         return (
            <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
-             <div className="absolute inset-0 opacity-40 animate-aurora mix-blend-screen filter blur-[60px]" 
-                  style={{ background: 'linear-gradient(45deg, #00ff87, #60efff, #0061ff)' }}>
+             <div className="absolute inset-0 opacity-60 animate-aurora mix-blend-overlay filter blur-[40px]" 
+                  style={{ background: 'linear-gradient(45deg, #00ff87, #60efff, #0061ff, #ff00ff)' }}>
              </div>
            </div>
         );
       case 'vortex':
         return (
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] animate-spin-slow opacity-30 mix-blend-overlay"
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] animate-spin-slow opacity-40 mix-blend-color-dodge"
                   style={{ background: 'conic-gradient(from 0deg, #ff0000, #ff9a00, #d0de21, #4fdc4a, #3fdad8, #2fc9e2, #1c7fee, #5f15f2, #ba0cf8, #fb07d9, #ff0000)' }}>
              </div>
           </div>
@@ -98,11 +121,11 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
       case 'clouds':
         return (
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
-             <div className="absolute inset-0 animate-drift-slow" 
+             <div className="absolute inset-0 animate-drift-slow bg-repeat-x" 
                   style={{ 
-                    backgroundImage: 'url(https://assets.codepen.io/3364143/cloud1.png)', 
-                    backgroundSize: 'cover',
-                    opacity: 0.4
+                    backgroundImage: 'url(https://raw.githubusercontent.com/s1mpson/-/master/codepen/clouds.png)', 
+                    backgroundSize: 'auto 100%',
+                    opacity: 0.6
                   }}>
              </div>
           </div>
@@ -234,6 +257,7 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
           <div className="absolute inset-0 bg-cover bg-center z-0 transition-all duration-700" 
                style={{ 
                  backgroundImage: `url(${photos[currentPhotoIndex]})`,
+                 // We blur the background image so text is readable
                  filter: 'brightness(0.5) blur(8px)',
                  transform: 'scale(1.1)'
                }}>
@@ -284,18 +308,27 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data }) => {
              
              {/* Music Player Mock */}
              {data.music && (
-               <div className="mt-4 mb-2 bg-black/60 backdrop-blur-xl p-3 rounded-2xl flex items-center gap-3 border border-white/10 shadow-xl">
+               <div className="mt-4 mb-2 bg-black/60 backdrop-blur-xl p-3 rounded-2xl flex items-center gap-3 border border-white/10 shadow-xl cursor-pointer hover:bg-black/70 transition-colors" onClick={toggleAudio}>
                  <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden shrink-0">
                     <div className="absolute inset-0 bg-gradient-to-tr from-christmas-red to-orange-500 opacity-80"></div>
-                    <div className="flex items-end justify-center gap-[2px] h-4 w-5 z-10">
-                        <div className="w-[3px] bg-white rounded-t-sm animate-music-bar-1"></div>
-                        <div className="w-[3px] bg-white rounded-t-sm animate-music-bar-2"></div>
-                        <div className="w-[3px] bg-white rounded-t-sm animate-music-bar-3"></div>
-                    </div>
+                    {isPlaying ? (
+                        <div className="flex items-end justify-center gap-[2px] h-4 w-5 z-10">
+                            <div className="w-[3px] bg-white rounded-t-sm animate-music-bar-1"></div>
+                            <div className="w-[3px] bg-white rounded-t-sm animate-music-bar-2"></div>
+                            <div className="w-[3px] bg-white rounded-t-sm animate-music-bar-3"></div>
+                        </div>
+                    ) : (
+                        <Play className="w-4 h-4 text-white z-10 fill-white ml-0.5" />
+                    )}
                  </div>
                  <div className="flex-1 overflow-hidden">
                    <p className="text-xs font-bold truncate text-white">{data.music}</p>
-                   <p className="text-[10px] text-gray-300">Tocando agora...</p>
+                   <p className="text-[10px] text-gray-300 flex items-center gap-1">
+                      {isPlaying ? 'Tocando agora...' : 'Toque para ouvir'}
+                   </p>
+                 </div>
+                 <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                    {isPlaying ? <Pause className="w-4 h-4 text-white" /> : <Play className="w-4 h-4 text-white fill-white" />}
                  </div>
                </div>
              )}

@@ -21,23 +21,23 @@ const steps = [
 
 // Reliable Unsplash Images
 const PRESET_IMAGES = [
+  "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=500&q=80", // Love Hand
   "https://images.unsplash.com/photo-1511285560982-1356c11d4606?w=500&q=80", // Wedding/Couple
   "https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=500&q=80", // Christmas Lights
   "https://images.unsplash.com/photo-1543589077-47d81606c1bf?w=500&q=80", // Couple Snow
   "https://images.unsplash.com/photo-1621800100799-a8685161048f?w=500&q=80", // Hands holding
-  "https://images.unsplash.com/photo-1516723225219-c0c5417ae417?w=500&q=80", // Family Christmas
   "https://images.unsplash.com/photo-1523438885200-e635ba2c371e?w=500&q=80", // Sparkler
   "https://images.unsplash.com/photo-1513297887119-d46091b24bfa?w=500&q=80", // Christmas Tree
   "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=500&q=80"  // Gift
 ];
 
-// Reliable Audio URLs (Pixabay)
+// Reliable Audio URLs
 const PRESET_MUSIC = [
+  { name: "Piano Romântico", url: "https://cdn.pixabay.com/download/audio/2022/11/22/audio_febc508520.mp3?filename=christmas-piano-126868.mp3" }, 
   { name: "Jingle Bells (Piano)", url: "https://cdn.pixabay.com/download/audio/2023/11/17/audio_51d28362d2.mp3" },
   { name: "We Wish You a Merry Christmas", url: "https://cdn.pixabay.com/download/audio/2022/11/24/audio_9242502b66.mp3" },
-  { name: "Piano Romântico", url: "https://cdn.pixabay.com/download/audio/2022/11/22/audio_febc508520.mp3?filename=christmas-piano-126868.mp3" }, 
-  { name: "Noite Feliz (Suave)", url: "https://cdn.pixabay.com/download/audio/2023/11/27/audio_730b2c151c.mp3" },
-  { name: "Jazz de Natal", url: "https://cdn.pixabay.com/download/audio/2022/12/16/audio_03d6978502.mp3" }
+  { name: "Jazz Natalino", url: "https://cdn.pixabay.com/download/audio/2022/12/16/audio_03d6978502.mp3" },
+  { name: "Silent Night (Suave)", url: "https://cdn.pixabay.com/download/audio/2023/11/27/audio_730b2c151c.mp3" }
 ];
 
 export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
@@ -54,6 +54,8 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     email: '',
     selectedPlan: null
   });
+
+  const [customMusicUrl, setCustomMusicUrl] = useState('');
 
   // Photo Input State
   const [photoInputMode, setPhotoInputMode] = useState<'gallery' | 'upload'>('gallery');
@@ -128,6 +130,16 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
         music: music.name,
         musicUrl: music.url
     }));
+    setCustomMusicUrl('');
+  };
+
+  const handleCustomMusic = () => {
+      if(!customMusicUrl) return;
+      setFormData(prev => ({
+          ...prev,
+          music: "Música Personalizada",
+          musicUrl: customMusicUrl
+      }));
   };
 
   // --- PHOTO LOGIC ---
@@ -373,8 +385,10 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
         );
       case 4: // Music (Updated)
         return (
-          <div className="space-y-4">
+          <div className="space-y-6">
              <label className="block text-sm font-medium text-gray-700">Escolha a Música</label>
+             
+             {/* Presets */}
              <div className="space-y-2">
                  {PRESET_MUSIC.map((track, idx) => (
                      <button
@@ -391,11 +405,40 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                          </div>
                          <div className="text-left flex-1">
                              <div className={`font-medium ${formData.music === track.name ? 'text-christmas-darkRed' : 'text-gray-900'}`}>{track.name}</div>
-                             <div className="text-xs text-gray-500">Toque para selecionar</div>
+                             <div className="text-xs text-gray-500">Música sugerida</div>
                          </div>
                          {formData.music === track.name && <Check className="w-5 h-5 text-christmas-red" />}
                      </button>
                  ))}
+             </div>
+
+             <div className="relative flex py-2 items-center">
+                <div className="flex-grow border-t border-gray-300"></div>
+                <span className="flex-shrink-0 mx-4 text-gray-400 text-xs">OU USE SEU LINK</span>
+                <div className="flex-grow border-t border-gray-300"></div>
+             </div>
+
+             {/* Custom URL */}
+             <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <label className="block text-xs font-bold text-gray-700 mb-2 uppercase">Link do MP3 (Opcional)</label>
+                <div className="flex gap-2">
+                    <input 
+                        type="text"
+                        placeholder="https://exemplo.com/musica.mp3"
+                        value={customMusicUrl}
+                        onChange={(e) => setCustomMusicUrl(e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-christmas-red outline-none"
+                    />
+                    <button 
+                        onClick={handleCustomMusic}
+                        className="bg-gray-800 text-white px-4 rounded-lg text-sm font-medium hover:bg-black transition-colors"
+                    >
+                        Usar
+                    </button>
+                </div>
+                <p className="text-[10px] text-gray-500 mt-2">
+                    Cole um link direto para um arquivo .mp3. (Links do Spotify/YouTube não funcionam aqui)
+                </p>
              </div>
           </div>
         );
@@ -498,8 +541,9 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     }
   };
 
-  // SUCCESS SCREEN
+  // SUCCESS SCREEN (Unchanged from previous logic, just referencing for context)
   if (generatedResult) {
+      // ... same success screen code
       const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
       return (
