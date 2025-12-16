@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Upload, Music, Check, X, Trash2, Search, PlayCircle, Loader2, Copy, Share2, Download, CheckCircle, AlertTriangle, Info, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Upload, Music, Check, X, Trash2, Search, PlayCircle, Loader2, Copy, Share2, Download, CheckCircle, AlertTriangle, Info, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 import { BuilderData, PhotoMode, BackgroundType } from '../../types';
 import { PhonePreview } from './PhonePreview';
 
@@ -12,7 +12,7 @@ const steps = [
   { title: 'Titulo da página', description: 'Escreva o titulo dedicatório para a página.' },
   { title: 'Mensagem', description: 'Escreva uma mensagem especial. Seja criativo e demonstre todo seu carinho.' },
   { title: 'Data de início', description: 'Informe a data de início que simbolize o início de uma união, relacionamento, amizade, etc.' },
-  { title: 'Fotos', description: 'Escolha fotos da nossa galeria para garantir que o link funcione perfeitamente.' },
+  { title: 'Fotos do Casal', description: 'Personalize com fotos especiais. Você pode usar nossa galeria, colar um link ou enviar do celular.' },
   { title: 'Música dedicada', description: 'Escolha a trilha sonora perfeita para o momento.' },
   { title: 'Animação de fundo', description: 'Escolha uma animação de fundo para a página.' },
   { title: 'Informações de contato', description: 'Preencha as informações de contato para receber o link e o QR Code.' },
@@ -31,7 +31,7 @@ const PRESET_IMAGES = [
   "https://images.unsplash.com/photo-1516723225219-c0c5417ae417?w=500&q=80"
 ];
 
-// Real Audio URLs (using Google Sounds or reliable sources)
+// Real Audio URLs
 const PRESET_MUSIC = [
   { name: "Jingle Bells (Clássica)", url: "https://actions.google.com/sounds/v1/holidays/jingle_bells.ogg" },
   { name: "We Wish You a Merry Christmas", url: "https://actions.google.com/sounds/v1/holidays/we_wish_you_a_merry_christmas.ogg" },
@@ -53,6 +53,10 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     email: '',
     selectedPlan: null
   });
+
+  // Photo Input State
+  const [photoInputMode, setPhotoInputMode] = useState<'gallery' | 'url' | 'upload'>('gallery');
+  const [customPhotoUrl, setCustomPhotoUrl] = useState('');
 
   // State for Generation Process
   const [isGenerating, setIsGenerating] = useState(false);
@@ -77,20 +81,18 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     setIsGenerating(true);
     
     setTimeout(() => {
-        // Create shortened payload
         const fullExportData = {
             title: formData.title,
             message: formData.message,
             date: formData.date,
             music: formData.music,
-            musicUrl: formData.musicUrl, // Include URL
+            musicUrl: formData.musicUrl,
             background: formData.background,
             photoMode: formData.photoMode,
-            photos: formData.photos // NOW WE INCLUDE PHOTOS because they are short URLs
+            photos: formData.photos
         };
 
         const jsonString = JSON.stringify(fullExportData);
-        // Better encoding for URL safety
         const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
         
         const origin = window.location.origin;
@@ -99,13 +101,18 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
         
         const uniqueUrl = `${origin}${cleanPath}?gift=${encodedData}`;
         
-        let qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(uniqueUrl)}&color=D42426&bgcolor=ffffff&margin=10`;
+        // Check URL length for QR Code safety
+        let qrCodeData = uniqueUrl;
         let warning = undefined;
 
-        if (uniqueUrl.length > 2000) {
-           // If too long, we might need to strip something, but using Unsplash URLs should be okay-ish.
-           warning = "Seu presente ficou muito grande! O QR Code pode demorar um pouco para ler. Tente usar menos fotos se tiver problemas.";
+        if (uniqueUrl.length > 2500) {
+            // Fallback: Link is too long for QR Code. 
+            // We generate a QR code for the homepage but with a warning, or a shortened version if we had a backend.
+            // Since we don't, we warn the user.
+            warning = "Atenção: Você usou muitas fotos ou textos longos. O QR Code pode ficar difícil de ler. O LINK enviado funcionará perfeitamente!";
         }
+
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrCodeData)}&color=D42426&bgcolor=ffffff&margin=10`;
 
         setGeneratedResult({
             url: uniqueUrl,
@@ -128,7 +135,8 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     }));
   };
 
-  // Gallery Logic
+  // --- PHOTO LOGIC ---
+
   const togglePhoto = (url: string) => {
     const currentPhotos = [...formData.photos];
     if (currentPhotos.includes(url)) {
@@ -139,26 +147,78 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
     }
   };
 
-  // Fallback for local upload (still allowed but warned)
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const addCustomUrl = () => {
+      if (!customPhotoUrl) return;
+      if (formData.photos.length >= 8) return;
+      updateField('photos', [...formData.photos, customPhotoUrl]);
+      setCustomPhotoUrl('');
+  };
+
+  // Image Compression Utility
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Max dimensions (resize to thumbnails to fit in URL)
+            const MAX_WIDTH = 400;
+            const MAX_HEIGHT = 400;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                }
+            } else {
+                if (height > MAX_HEIGHT) {
+                    width *= MAX_HEIGHT / height;
+                    height = MAX_HEIGHT;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Draw resized image
+            ctx?.drawImage(img, 0, 0, width, height);
+            
+            // Compress to JPEG with 0.6 quality
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+            resolve(dataUrl);
+        };
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // Warning alert
-    alert("Atenção: Fotos do seu dispositivo só funcionam para visualização local. Para enviar o link para outra pessoa, use as fotos da Galeria!");
+    // Process files with compression
+    const newPhotos: string[] = [];
+    
+    for (let i = 0; i < files.length; i++) {
+        if (formData.photos.length + newPhotos.length >= 8) break;
+        try {
+            const compressed = await compressImage(files[i]);
+            newPhotos.push(compressed);
+        } catch (err) {
+            console.error("Erro ao comprimir imagem", err);
+        }
+    }
 
-    const promises = Array.from(files).slice(0, 8).map(file => {
-        return new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target?.result as string);
-            reader.readAsDataURL(file as Blob);
-        });
-    });
-
-    Promise.all(promises).then(images => {
-        updateField('photos', [...formData.photos, ...images].slice(0, 8));
-    });
+    updateField('photos', [...formData.photos, ...newPhotos]);
     e.target.value = '';
+  };
+
+  const removePhoto = (index: number) => {
+    const newPhotos = [...formData.photos];
+    newPhotos.splice(index, 1);
+    updateField('photos', newPhotos);
   };
 
   const renderStepContent = () => {
@@ -185,7 +245,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
               onChange={(e) => updateField('message', e.target.value)}
               placeholder="Escreva sua mensagem aqui..."
               className="w-full h-48 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-christmas-red focus:border-transparent outline-none transition-all resize-none"
-              maxLength={500} // Reduced limit to help URL size
+              maxLength={500} 
             />
             <div className="text-right text-xs text-gray-400">{formData.message.length}/500</div>
           </div>
@@ -202,67 +262,124 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
             />
           </div>
         );
-      case 3: // Photos (Updated)
+      case 3: // Photos (Updated for Custom Photos)
         return (
           <div className="space-y-6">
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex gap-3 text-sm text-blue-700">
-                <Info className="w-5 h-5 shrink-0" />
-                <p>Para o Link funcionar 100%, escolha fotos da nossa galeria abaixo.</p>
-            </div>
-
-            <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">Galeria de Natal</label>
-                <div className="grid grid-cols-4 gap-2">
-                    {PRESET_IMAGES.map((url, idx) => (
-                        <div 
-                            key={idx} 
-                            onClick={() => togglePhoto(url)}
-                            className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${formData.photos.includes(url) ? 'border-christmas-red scale-95' : 'border-transparent hover:border-gray-300'}`}
-                        >
-                            <img src={url} alt="Preset" className="w-full h-full object-cover" />
-                            {formData.photos.includes(url) && (
-                                <div className="absolute inset-0 bg-christmas-red/20 flex items-center justify-center">
-                                    <CheckCircle className="w-6 h-6 text-white drop-shadow-md" />
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <div className="border-t border-gray-100 pt-4">
-                 <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileChange} 
-                    className="hidden" 
-                    multiple 
-                    accept="image/*"
-                />
+            
+            {/* Tabs */}
+            <div className="flex bg-gray-100 p-1 rounded-lg">
                 <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 text-sm hover:border-gray-400 hover:bg-gray-50 transition-colors"
+                    onClick={() => setPhotoInputMode('gallery')}
+                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${photoInputMode === 'gallery' ? 'bg-white text-christmas-red shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                 >
-                    Ou carregue do celular (não recomendado para compartilhar)
+                    Galeria
+                </button>
+                <button 
+                    onClick={() => setPhotoInputMode('upload')}
+                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${photoInputMode === 'upload' ? 'bg-white text-christmas-red shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                    Seu Celular
+                </button>
+                <button 
+                    onClick={() => setPhotoInputMode('url')}
+                    className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${photoInputMode === 'url' ? 'bg-white text-christmas-red shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                    Link (URL)
                 </button>
             </div>
+
+            {/* Gallery Content */}
+            {photoInputMode === 'gallery' && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-bottom-2">
+                    <div className="bg-blue-50 p-2 rounded text-xs text-blue-700">
+                        Fotos de alta qualidade perfeitas para o Natal.
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                        {PRESET_IMAGES.map((url, idx) => (
+                            <div 
+                                key={idx} 
+                                onClick={() => togglePhoto(url)}
+                                className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${formData.photos.includes(url) ? 'border-christmas-red scale-95' : 'border-transparent hover:border-gray-300'}`}
+                            >
+                                <img src={url} alt="Preset" className="w-full h-full object-cover" />
+                                {formData.photos.includes(url) && (
+                                    <div className="absolute inset-0 bg-christmas-red/20 flex items-center justify-center">
+                                        <CheckCircle className="w-6 h-6 text-white drop-shadow-md" />
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* URL Content */}
+            {photoInputMode === 'url' && (
+                <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
+                    <div className="bg-green-50 p-3 rounded-lg text-xs text-green-700 border border-green-100 flex gap-2">
+                        <CheckCircle className="w-4 h-4 shrink-0" />
+                        <div>
+                            <strong>Melhor opção para QR Code:</strong> Cole o link de uma foto sua que já está na internet (Facebook, Instagram público, Imgur). O QR Code fica leve e rápido!
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <input 
+                            type="text" 
+                            value={customPhotoUrl}
+                            onChange={(e) => setCustomPhotoUrl(e.target.value)}
+                            placeholder="https://..."
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-christmas-red outline-none"
+                        />
+                        <button 
+                            onClick={addCustomUrl}
+                            className="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-black transition-colors"
+                        >
+                            Adicionar
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Upload Content */}
+            {photoInputMode === 'upload' && (
+                <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
+                    <div className="bg-orange-50 p-3 rounded-lg text-xs text-orange-700 border border-orange-100 flex gap-2">
+                        <Info className="w-4 h-4 shrink-0" />
+                        <div>
+                            <strong>Compressão Automática:</strong> Para caber no link, vamos diminuir um pouco a qualidade da sua foto. Se o QR Code não ler, tente usar a opção "Link (URL)".
+                        </div>
+                    </div>
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleFileChange} 
+                        className="hidden" 
+                        multiple 
+                        accept="image/*"
+                    />
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full py-6 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 text-sm hover:border-christmas-red hover:text-christmas-red hover:bg-red-50 transition-all flex flex-col items-center gap-2"
+                    >
+                        <Upload className="w-6 h-6" />
+                        Toque para escolher do celular
+                    </button>
+                </div>
+            )}
             
+            {/* Selected Photos List */}
             {formData.photos.length > 0 && (
-                <div className="pt-2">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Fotos Selecionadas ({formData.photos.length})</p>
-                    <div className="flex gap-2 overflow-x-auto pb-2">
+                <div className="pt-2 border-t border-gray-100">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Fotos Selecionadas ({formData.photos.length}/8)</p>
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
                          {formData.photos.map((photo, index) => (
-                            <div key={index} className="relative w-16 h-16 shrink-0 rounded-md overflow-hidden group">
-                                <img src={photo} className="w-full h-full object-cover" />
+                            <div key={index} className="relative w-16 h-16 shrink-0 rounded-md overflow-hidden group shadow-sm bg-gray-100">
+                                <img src={photo} className="w-full h-full object-cover" alt="Selected" />
                                 <button 
-                                    onClick={() => {
-                                        const newP = [...formData.photos];
-                                        newP.splice(index, 1);
-                                        updateField('photos', newP);
-                                    }}
+                                    onClick={() => removePhoto(index)}
                                     className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
-                                    <X className="w-4 h-4 text-white" />
+                                    <Trash2 className="w-4 h-4 text-white" />
                                 </button>
                             </div>
                          ))}
@@ -479,8 +596,8 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose }) => {
                          </div>
                          
                          {generatedResult.warning && (
-                            <div className="text-xs text-orange-500 mb-6 bg-orange-50 p-2 rounded-lg border border-orange-100">
-                                {generatedResult.warning}
+                            <div className="text-xs text-orange-600 mb-6 bg-orange-50 p-3 rounded-lg border border-orange-200 text-left leading-relaxed">
+                                <strong>Nota Importante:</strong> {generatedResult.warning}
                             </div>
                          )}
 
