@@ -1,16 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, Gift } from 'lucide-react';
+import { Gift } from 'lucide-react';
 
-const NAMES = [
-  "Ana C.", "João P.", "Beatriz M.", "Lucas S.", 
-  "Mariana R.", "Pedro H.", "Julia O.", "Gabriel F.",
-  "Larissa K.", "Rafael B.", "Fernanda L.", "Thiago M."
+const PROOFS = [
+  { name: "Ana C.", city: "São Paulo, SP" },
+  { name: "João P.", city: "Rio de Janeiro, RJ" },
+  { name: "Beatriz M.", city: "Belo Horizonte, MG" },
+  { name: "Lucas S.", city: "Curitiba, PR" },
+  { name: "Mariana R.", city: "Salvador, BA" },
+  { name: "Pedro H.", city: "Brasília, DF" },
+  { name: "Julia O.", city: "Recife, PE" },
+  { name: "Gabriel F.", city: "Porto Alegre, RS" },
+  { name: "Larissa K.", city: "Fortaleza, CE" },
+  { name: "Rafael B.", city: "Goiânia, GO" },
+  { name: "Fernanda L.", city: "Manaus, AM" },
+  { name: "Thiago M.", city: "Campinas, SP" }
 ];
 
 export const SocialProofPopup: React.FC = () => {
   const [visible, setVisible] = useState(false);
-  const [currentName, setCurrentName] = useState("");
+  const [currentProof, setCurrentProof] = useState({ name: "", city: "" });
 
   useEffect(() => {
     // Show first popup quickly
@@ -30,8 +39,8 @@ export const SocialProofPopup: React.FC = () => {
   }, []);
 
   const triggerPopup = () => {
-    const randomName = NAMES[Math.floor(Math.random() * NAMES.length)];
-    setCurrentName(randomName);
+    const randomProof = PROOFS[Math.floor(Math.random() * PROOFS.length)];
+    setCurrentProof(randomProof);
     setVisible(true);
 
     // Hide after 4 seconds
@@ -45,24 +54,24 @@ export const SocialProofPopup: React.FC = () => {
       <AnimatePresence>
         {visible && (
           <motion.div
-            initial={{ opacity: 0, x: 50, scale: 0.9 }}
+            initial={{ opacity: 0, x: 20, scale: 0.95 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="bg-white/95 backdrop-blur-sm border border-green-100 shadow-xl rounded-lg p-3 flex items-center gap-3 w-auto max-w-[280px]"
+            className="bg-white/95 backdrop-blur-sm border border-green-100 shadow-md rounded-lg p-2 flex items-center gap-2.5 w-auto max-w-[260px]"
           >
-            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-               <Gift className="w-4 h-4 text-green-600" />
+            <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+               <Gift className="w-3 h-3 text-green-600" />
             </div>
-            <div>
-               <p className="text-xs font-bold text-gray-800">
-                  {currentName}
+            <div className="flex flex-col justify-center">
+               <p className="text-[10px] font-bold text-gray-800 leading-none mb-0.5">
+                  {currentProof.name} <span className="font-normal text-gray-400 text-[9px]">de {currentProof.city}</span>
                </p>
-               <p className="text-[10px] text-gray-500 font-medium leading-tight">
+               <p className="text-[9px] text-gray-500 font-medium leading-none">
                   acabou de receber o CODELOVE
                </p>
             </div>
-            <div className="ml-2 w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0"></div>
+            <div className="ml-1 w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shrink-0"></div>
           </motion.div>
         )}
       </AnimatePresence>
