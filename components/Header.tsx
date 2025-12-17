@@ -23,7 +23,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenBuilder }) => {
 
                 <button 
                   onClick={onOpenBuilder}
-                  className="px-6 py-2.5 rounded-full text-sm font-bold bg-white text-christmas-darkRed hover:bg-gray-50 transition-all shadow-lg shadow-black/10 hover:shadow-xl hover:-translate-y-0.5"
+                  className="px-6 py-2.5 rounded-full text-sm font-bold bg-green-600 text-white hover:bg-green-500 transition-all shadow-lg shadow-black/10 hover:shadow-xl hover:-translate-y-0.5 animate-pulse-scale"
                 >
                     Criar Presente
                 </button>

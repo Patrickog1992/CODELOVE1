@@ -78,7 +78,7 @@ export const MockupSection: React.FC = () => {
                      <div className="bg-red-600 w-12 h-12 rounded-full flex items-center justify-center font-bold shadow-lg border border-white/20">H</div>
                      <div className="bg-red-600 w-12 h-12 rounded-full flex items-center justify-center font-bold shadow-lg border border-white/20">M</div>
                    </div>
-                   <button className="bg-christmas-gold text-red-900 font-bold py-3 px-8 rounded-full text-sm shadow-xl hover:scale-105 transition-transform">
+                   <button className="bg-green-600 text-white font-bold py-3 px-8 rounded-full text-sm shadow-xl hover:scale-105 transition-transform animate-pulse-scale">
                      Ver nossa história
                    </button>
                 </div>

@@ -11,6 +11,7 @@ import { FAQ } from './components/FAQ';
 import { Footer } from './components/Footer';
 import { BuilderWizard } from './components/builder/BuilderWizard';
 import { GiftViewer } from './components/GiftViewer';
+import { SocialProofPopup } from './components/SocialProofPopup';
 import { BuilderData } from './types';
 
 function App() {
@@ -125,6 +126,7 @@ function App() {
   return (
     <div className="font-poppins text-gray-800 antialiased selection:bg-christmas-red selection:text-white">
       <Header onOpenBuilder={openBuilder} />
+      <SocialProofPopup />
       <main>
         <Hero onOpenBuilder={openBuilder} />
         <MockupSection />

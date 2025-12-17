@@ -32,9 +32,9 @@ export const LoveDeclaration: React.FC<LoveDeclarationProps> = ({ onOpenBuilder 
 
         <button
           onClick={onOpenBuilder}
-          className="bg-christmas-gold text-christmas-darkRed text-lg font-bold py-5 px-12 rounded-full shadow-2xl shadow-black/20 hover:bg-white hover:scale-105 transition-all active:scale-95 flex items-center gap-3 mx-auto group"
+          className="bg-green-600 text-white text-lg font-bold py-5 px-12 rounded-full shadow-2xl shadow-green-600/30 hover:bg-green-500 transition-all animate-pulse-scale flex items-center gap-3 mx-auto group"
         >
-          <Heart className="w-6 h-6 fill-current group-hover:text-christmas-red transition-colors" />
+          <Heart className="w-6 h-6 fill-current group-hover:scale-110 transition-transform" />
           Quero criar a página
         </button>
       </div>

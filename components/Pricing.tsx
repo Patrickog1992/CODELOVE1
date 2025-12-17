@@ -117,7 +117,7 @@ export const Pricing: React.FC<PricingProps> = ({ onOpenBuilder }) => {
                   onClick={onOpenBuilder}
                   className={`w-full py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 ${
                   plan.recommended 
-                  ? 'bg-christmas-red text-white hover:bg-christmas-darkRed' 
+                  ? 'bg-green-600 text-white hover:bg-green-500 animate-pulse-scale' 
                   : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
               }`}>
                   <Gift className="w-5 h-5" />

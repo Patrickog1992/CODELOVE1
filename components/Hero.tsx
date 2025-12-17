@@ -36,7 +36,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenBuilder }) => {
 
         <button
           onClick={onOpenBuilder}
-          className="bg-christmas-gold text-christmas-darkRed text-lg font-bold py-4 px-10 rounded-full shadow-lg shadow-christmas-darkRed/50 hover:bg-yellow-300 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 mb-8"
+          className="bg-green-600 text-white text-lg font-bold py-4 px-10 rounded-full shadow-lg shadow-green-600/50 hover:bg-green-500 transition-all animate-pulse-scale flex items-center gap-2 mb-8"
         >
           <Heart className="w-5 h-5 fill-current" />
           🎄 Criar meu presente de Natal
