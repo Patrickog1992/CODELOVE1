@@ -51,6 +51,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
 
   const [playingPreview, setPlayingPreview] = useState<string | null>(null);
   const audioPreviewRef = useRef<HTMLAudioElement | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const parseDate = (dateString: string) => {
       if(!dateString) return { day: '', month: '', year: '' };
@@ -177,47 +178,18 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
     updateField('photos', newPhotos);
   };
 
-  // Helper para comprimir imagem localmente
-  const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 500;
-          const MAX_HEIGHT = 500;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.6)); // Comprime para JPEG com 60% de qualidade
-        };
-        img.onerror = reject;
-      };
-      reader.onerror = reject;
-    });
+  const handleCopyLink = () => {
+    if (generatedResult) {
+      navigator.clipboard.writeText(generatedResult.url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
       if (!files || files.length === 0) return;
+      
       const filesArray = Array.from(files) as File[];
       const remainingSlots = 8 - formData.photos.length;
       
@@ -227,24 +199,39 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
       }
 
       setIsUploading(true);
-      const processedBase64s: string[] = [];
+      const uploadedUrls: string[] = [];
 
       try {
           for (const file of filesArray) {
               if (!file.type.startsWith('image/')) continue;
-              const compressed = await compressImage(file);
-              processedBase64s.push(compressed);
+              
+              const uploadData = new FormData();
+              uploadData.append('file', file);
+              uploadData.append('upload_preset', 'ml_default'); // Preset padrão do Cloudinary (ajuste se necessário)
+              
+              const response = await fetch('https://api.cloudinary.com/v1_1/dzi28teuq/image/upload', {
+                  method: 'POST',
+                  body: uploadData
+              });
+              
+              const data = await response.json();
+              
+              if (data.secure_url) {
+                  uploadedUrls.push(data.secure_url);
+              } else {
+                  console.error("Erro no upload:", data);
+              }
           }
 
-          if (processedBase64s.length > 0) {
+          if (uploadedUrls.length > 0) {
               setFormData(prev => ({
                   ...prev,
-                  photos: [...prev.photos, ...processedBase64s]
+                  photos: [...prev.photos, ...uploadedUrls]
               }));
           }
       } catch (err) {
-          console.error("Erro ao processar imagens:", err);
-          alert("Ocorreu um erro ao processar as fotos. Tente fotos menores ou em outro formato.");
+          console.error("Erro de rede:", err);
+          alert("Erro ao enviar fotos. Verifique sua conexão.");
       } finally {
           setIsUploading(false);
           if (fileInputRef.current) fileInputRef.current.value = '';
@@ -329,7 +316,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                       {isUploading ? (
                           <div className="flex flex-col items-center animate-pulse">
                               <Loader2 className="w-10 h-10 text-christmas-red animate-spin mb-3" />
-                              <p className="text-sm font-bold text-christmas-red">Processando fotos...</p>
+                              <p className="text-sm font-bold text-christmas-red">Enviando para o servidor...</p>
                           </div>
                       ) : (
                           <>
@@ -337,7 +324,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                                 <ImagePlus className="w-7 h-7 text-christmas-red" />
                             </div>
                             <h4 className="font-bold text-gray-800 text-sm">Toque para adicionar fotos</h4>
-                            <p className="text-xs text-gray-500 mt-1 max-w-[200px] text-center">As fotos são salvas apenas no seu link. (Máx 8 fotos)</p>
+                            <p className="text-xs text-gray-500 mt-1 max-w-[200px] text-center">As fotos ficam salvas online no seu presente. (Máx 8 fotos)</p>
                           </>
                       )}
                 </div>
@@ -428,9 +415,12 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                          <div className="text-xs font-bold text-christmas-red uppercase tracking-widest bg-red-50 py-2 rounded-lg">🎅 Grátis para Sempre</div>
                      </div>
                      <div className="space-y-3 w-full max-w-sm">
-                         <button onClick={() => navigator.clipboard.writeText(generatedResult.url)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-bold text-christmas-red truncate uppercase tracking-wide flex items-center justify-between">
-                            <span>COPIAR LINK DO PRESENTE</span>
-                            <Copy className="w-4 h-4" />
+                         <button 
+                            onClick={handleCopyLink} 
+                            className={`w-full ${copied ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'} border rounded-xl px-4 py-3 text-xs font-bold ${copied ? 'text-green-600' : 'text-christmas-red'} truncate uppercase tracking-wide flex items-center justify-between transition-all duration-300`}
+                         >
+                            <span>{copied ? 'LINK COPIADO COM SUCESSO!' : 'COPIAR LINK DO PRESENTE'}</span>
+                            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                          </button>
                          <a href={generatedResult.qrCodeUrl} download className="w-full bg-christmas-red text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg"><Download className="w-4 h-4" /> Baixar QR Code</a>
                          <button onClick={onClose} className="w-full py-4 text-gray-400 text-sm hover:text-gray-600">Criar outro presente</button>
