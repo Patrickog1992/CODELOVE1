@@ -8,37 +8,20 @@ interface PricingProps {
 
 const plans: Plan[] = [
   {
-    id: 'annual',
-    name: '🎁 Plano Anual',
-    subtitle: 'Acesso por 12 meses',
-    price: '21,00',
-    period: 'por ano',
-    recommended: false,
-    ctaText: 'Escolher Anual',
+    id: 'free',
+    name: '🎄 Edição de Natal',
+    subtitle: 'Presente 100% Gratuito',
+    price: '0,00',
+    period: 'acesso vitalício',
+    recommended: true,
+    ctaText: 'Criar presente grátis',
     features: [
       { text: 'Contador em tempo real', included: true },
-      { text: 'Mensagem de Natal', included: true },
-      { text: 'Data especial', included: true },
-      { text: 'QR Code para imprimir', included: true },
-      { text: 'Até 8 imagens na galeria', included: true },
+      { text: 'Mensagem e Fotos', included: true },
       { text: 'Música de Natal', included: true },
-    ]
-  },
-  {
-    id: 'lifetime',
-    name: '🎄 Plano Vitalício',
-    subtitle: 'Acesso Eterno',
-    price: '27,00',
-    period: 'pagamento único',
-    recommended: true,
-    ctaText: 'Criar meu presente agora',
-    features: [
-      { text: 'TUDO do plano anual', included: true },
-      { text: 'URL personalizada eterna', included: true },
-      { text: 'Suporte prioritário 24h', included: true },
-      { text: 'Animações exclusivas', included: true },
-      { text: 'Efeito de Neve Realista', included: true },
-      { text: 'Sem data de expiração', included: true },
+      { text: 'QR Code Exclusivo', included: true },
+      { text: 'Link Personalizado', included: true },
+      { text: 'Sem custo nenhum', included: true },
     ]
   }
 ];
@@ -49,24 +32,24 @@ export const Pricing: React.FC<PricingProps> = ({ onOpenBuilder }) => {
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <span className="text-christmas-red font-bold uppercase tracking-widest text-sm mb-2 block">OFERTA DE NATAL</span>
-          <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">Escolha o seu presente 🎄</h2>
-          <p className="text-gray-600 text-xl">Uma lembrança eterna para quem você ama 🎁</p>
+          <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">Presenteie Gratuitamente 🎄</h2>
+          <p className="text-gray-600 text-xl">Crie uma lembrança eterna sem pagar nada.</p>
         </div>
 
-        <div className="flex flex-col lg:flex-row justify-center items-stretch gap-8 max-w-5xl mx-auto">
+        <div className="flex justify-center items-center max-w-md mx-auto">
           {plans.map((plan) => (
             <div
               key={plan.id}
-              className={`relative flex-1 rounded-3xl p-8 flex flex-col bg-white shadow-2xl border-2 transition-all duration-300 transform hover:scale-[1.02] ${plan.recommended ? 'border-christmas-gold z-10' : 'border-gray-100'}`}
+              className={`relative w-full rounded-3xl p-8 flex flex-col bg-white shadow-2xl border-2 transition-all duration-300 transform hover:scale-[1.02] border-christmas-gold z-10`}
             >
               {plan.recommended && (
                 <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-christmas-gold text-white font-bold py-2 px-6 rounded-full shadow-md text-sm uppercase tracking-wide flex items-center gap-2 whitespace-nowrap">
-                  <Sparkles className="w-4 h-4" /> MAIS VENDIDO
+                  <Sparkles className="w-4 h-4" /> ESPECIAL DE NATAL
                 </div>
               )}
 
               <div className="mb-6 text-center">
-                <h3 className={`text-2xl font-bold mb-1 ${plan.recommended ? 'text-christmas-red' : 'text-gray-800'}`}>
+                <h3 className={`text-2xl font-bold mb-1 text-christmas-red`}>
                     {plan.name}
                 </h3>
                 <p className="text-sm text-gray-500 mb-6">{plan.subtitle}</p>
@@ -75,7 +58,7 @@ export const Pricing: React.FC<PricingProps> = ({ onOpenBuilder }) => {
                     <span className="text-6xl font-extrabold text-gray-900">{plan.price.split(',')[0]}</span>
                     <span className="text-2xl font-bold mt-2 text-gray-900">,{plan.price.split(',')[1]}</span>
                 </div>
-                <p className="text-gray-400 text-sm">{plan.period}</p>
+                <p className="text-green-600 font-bold text-sm bg-green-50 inline-block px-3 py-1 rounded-full">{plan.period}</p>
               </div>
 
               <div className="flex-1 mb-8 space-y-4">
@@ -95,7 +78,7 @@ export const Pricing: React.FC<PricingProps> = ({ onOpenBuilder }) => {
 
               <button 
                   onClick={onOpenBuilder}
-                  className={`w-full py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 ${plan.recommended ? 'bg-green-600 text-white hover:bg-green-500 animate-pulse-scale' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  className={`w-full py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 bg-green-600 text-white hover:bg-green-500 animate-pulse-scale`}
               >
                   <Gift className="w-5 h-5" />
                   {plan.ctaText}
