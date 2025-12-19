@@ -9,16 +9,41 @@ interface PhonePreviewProps {
   autoPlay?: boolean;
 }
 
+// Helper to optimize Cloudinary URLs
+const getOptimizedUrl = (url: string, width: number = 800, blur: boolean = false) => {
+    if (!url) return '';
+    // Check if it's a Cloudinary URL
+    if (url.includes('cloudinary.com')) {
+        // Split at /upload/
+        const parts = url.split('/upload/');
+        if (parts.length === 2) {
+            const transformations = [
+                `w_${width}`,
+                'f_auto', // WebP/AVIF automatically
+                'q_auto:good', // Balance visual quality and file size
+                blur ? 'e_blur:200' : ''
+            ].filter(Boolean).join(',');
+            
+            return `${parts[0]}/upload/${transformations}/${parts[1]}`;
+        }
+    }
+    // Return original if not Cloudinary (or fallback)
+    return url;
+};
+
 // Internal component to handle image loading gracefully
 const OptimizedImage = ({ src, className, style }: { src: string, className?: string, style?: React.CSSProperties }) => {
     const [isLoaded, setIsLoaded] = useState(false);
     
+    // Generate optimized URL for main display
+    const optimizedSrc = getOptimizedUrl(src, 800);
+
     useEffect(() => {
         setIsLoaded(false);
         const img = new Image();
-        img.src = src;
+        img.src = optimizedSrc;
         img.onload = () => setIsLoaded(true);
-    }, [src]);
+    }, [optimizedSrc]);
 
     return (
         <div className={`relative overflow-hidden ${className}`} style={style}>
@@ -28,7 +53,7 @@ const OptimizedImage = ({ src, className, style }: { src: string, className?: st
                 </div>
             )}
             <motion.img 
-                src={src} 
+                src={optimizedSrc} 
                 className={`w-full h-full object-cover pointer-events-none transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
                 alt="Memory" 
             />
@@ -84,11 +109,13 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
   // Handle Photo Navigation
   const photos = data.photos && data.photos.length > 0 ? data.photos : ['https://images.unsplash.com/photo-1543589077-47d81606c1bf?w=500&q=80'];
   
+  // Preload Next Image (Optimized)
   useEffect(() => {
       if (photos.length > 1) {
           const nextIndex = (currentPhotoIndex + 1) % photos.length;
           const img = new Image();
-          img.src = photos[nextIndex];
+          // Preload the OPTIMIZED version
+          img.src = getOptimizedUrl(photos[nextIndex], 800);
       }
   }, [currentPhotoIndex, photos]);
   
@@ -308,6 +335,11 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
 
   const timeElapsed = calculateTime(data.date);
   
+  // Background Image Optimization:
+  // We use a tiny, heavily blurred image for the background layer to make it load instantly
+  const bgImage = photos[currentPhotoIndex];
+  const optimizedBg = getOptimizedUrl(bgImage, 100, true); 
+
   return (
     <div>
       {/* Audio Element (Standard MP3) */}
@@ -324,10 +356,10 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ data, autoPlay = fal
         <div className="rounded-[2rem] overflow-hidden w-full h-full bg-white relative flex flex-col">
           
           {/* Background Base Layer */}
-          <div className="absolute inset-0 bg-cover bg-center z-0 transition-all duration-200" 
+          <div className="absolute inset-0 bg-cover bg-center z-0 transition-all duration-500" 
                style={{ 
-                 backgroundImage: `url(${photos[currentPhotoIndex]})`,
-                 filter: 'brightness(0.5) blur(8px)',
+                 backgroundImage: `url(${optimizedBg})`,
+                 filter: 'brightness(0.5)',
                  transform: 'scale(1.1)'
                }}>
           </div>
