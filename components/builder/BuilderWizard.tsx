@@ -177,44 +177,78 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
     updateField('photos', newPhotos);
   };
 
+  // Helper para comprimir imagem localmente
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 500;
+          const MAX_HEIGHT = 500;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.6)); // Comprime para JPEG com 60% de qualidade
+        };
+        img.onerror = reject;
+      };
+      reader.onerror = reject;
+    });
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
       if (!files || files.length === 0) return;
       const filesArray = Array.from(files) as File[];
       const remainingSlots = 8 - formData.photos.length;
+      
       if (filesArray.length > remainingSlots) {
           alert(`Você só pode adicionar mais ${remainingSlots} fotos.`);
           return;
       }
+
       setIsUploading(true);
-      const uploadedUrls: string[] = [];
-      for (const file of filesArray) {
-          if (!file.type.startsWith('image/')) continue;
-          const uploadData = new FormData();
-          uploadData.append('file', file);
-          uploadData.append('upload_preset', 'natal-upload');
-          uploadData.append('folder', 'presentes-natal');
-          try {
-              const response = await fetch('https://api.cloudinary.com/v1_1/dzi28teuq/image/upload', {
-                  method: 'POST',
-                  body: uploadData
-              });
-              const data = await response.json();
-              if (data.secure_url) {
-                  uploadedUrls.push(data.secure_url);
-              }
-          } catch (err) {
-              console.error("Network error uploading", err);
+      const processedBase64s: string[] = [];
+
+      try {
+          for (const file of filesArray) {
+              if (!file.type.startsWith('image/')) continue;
+              const compressed = await compressImage(file);
+              processedBase64s.push(compressed);
           }
+
+          if (processedBase64s.length > 0) {
+              setFormData(prev => ({
+                  ...prev,
+                  photos: [...prev.photos, ...processedBase64s]
+              }));
+          }
+      } catch (err) {
+          console.error("Erro ao processar imagens:", err);
+          alert("Ocorreu um erro ao processar as fotos. Tente fotos menores ou em outro formato.");
+      } finally {
+          setIsUploading(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
       }
-      if (uploadedUrls.length > 0) {
-          setFormData(prev => ({
-              ...prev,
-              photos: [...prev.photos, ...uploadedUrls]
-          }));
-      }
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const renderStepContent = () => {
@@ -295,7 +329,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                       {isUploading ? (
                           <div className="flex flex-col items-center animate-pulse">
                               <Loader2 className="w-10 h-10 text-christmas-red animate-spin mb-3" />
-                              <p className="text-sm font-bold text-christmas-red">Enviando fotos...</p>
+                              <p className="text-sm font-bold text-christmas-red">Processando fotos...</p>
                           </div>
                       ) : (
                           <>
@@ -303,7 +337,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                                 <ImagePlus className="w-7 h-7 text-christmas-red" />
                             </div>
                             <h4 className="font-bold text-gray-800 text-sm">Toque para adicionar fotos</h4>
-                            <p className="text-xs text-gray-500 mt-1 max-w-[200px] text-center">Escolha da sua galeria. (Máx 8 fotos)</p>
+                            <p className="text-xs text-gray-500 mt-1 max-w-[200px] text-center">As fotos são salvas apenas no seu link. (Máx 8 fotos)</p>
                           </>
                       )}
                 </div>
