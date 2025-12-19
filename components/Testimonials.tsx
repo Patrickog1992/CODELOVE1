@@ -57,6 +57,8 @@ export const Testimonials: React.FC = () => {
                     src={testimonial.avatar} 
                     alt={testimonial.name} 
                     loading="lazy"
+                    width="40"
+                    height="40"
                     className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" 
                 />
                 <div>
@@ -72,7 +74,14 @@ export const Testimonials: React.FC = () => {
           <div className="flex -space-x-2">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                   <div key={i} className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white overflow-hidden">
-                      <img src={`https://picsum.photos/50/50?random=${i+200}`} loading="lazy" className="w-full h-full object-cover" alt="" />
+                      <img 
+                        src={`https://picsum.photos/50/50?random=${i+200}`} 
+                        loading="lazy" 
+                        width="32"
+                        height="32"
+                        className="w-full h-full object-cover" 
+                        alt="" 
+                      />
                   </div>
               ))}
           </div>

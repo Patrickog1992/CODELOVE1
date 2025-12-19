@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { MockupSection } from './components/MockupSection';
@@ -9,11 +9,21 @@ import { Testimonials } from './components/Testimonials';
 import { LoveDeclaration } from './components/LoveDeclaration';
 import { FAQ } from './components/FAQ';
 import { Footer } from './components/Footer';
-import { BuilderWizard } from './components/builder/BuilderWizard';
-import { GiftViewer } from './components/GiftViewer';
 import { SocialProofPopup } from './components/SocialProofPopup';
-import { AccessGate } from './components/AccessGate'; // Import AccessGate
+import { AccessGate } from './components/AccessGate';
 import { BuilderData } from './types';
+import { Loader2 } from 'lucide-react';
+
+// Lazy load heavy components
+const BuilderWizard = React.lazy(() => import('./components/builder/BuilderWizard').then(module => ({ default: module.BuilderWizard })));
+const GiftViewer = React.lazy(() => import('./components/GiftViewer').then(module => ({ default: module.GiftViewer })));
+
+// Loading Fallback Component
+const PageLoader = () => (
+  <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
+    <Loader2 className="w-10 h-10 text-christmas-red animate-spin" />
+  </div>
+);
 
 function App() {
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
@@ -126,7 +136,11 @@ function App() {
 
   // If viewing a gift, show the Viewer ONLY (Bypasses Gate if giftData is set)
   if (giftData) {
-    return <GiftViewer data={giftData} />;
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <GiftViewer data={giftData} />
+      </Suspense>
+    );
   }
 
   // If NO access yet, show Gate
@@ -137,11 +151,13 @@ function App() {
   // If builder is open, show builder
   if (isBuilderOpen) {
     return (
+      <Suspense fallback={<PageLoader />}>
         <BuilderWizard 
             onClose={closeBuilder} 
             initialData={restoredData}
             startFinished={startAtSuccess}
         />
+      </Suspense>
     );
   }
 
