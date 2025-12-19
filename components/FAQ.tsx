@@ -6,19 +6,19 @@ import { FAQItem } from '../types';
 const faqItems: FAQItem[] = [
     {
         question: "Como recebo o presente?",
-        answer: "Assim que você terminar de personalizar, o sistema gera na hora o seu link exclusivo e o QR Code. Você pode baixar e copiar na mesma hora."
+        answer: "Assim que você terminar de personalizar e concluir o pedido, o sistema gera na hora o seu link exclusivo e o QR Code. Você pode baixar e copiar na mesma hora."
     },
     {
-        question: "É realmente gratuito?",
-        answer: "Sim! O CODELOVE é uma ferramenta gratuita para que você possa presentear quem ama neste Natal sem custos."
+        question: "Quais são os planos disponíveis?",
+        answer: "Oferecemos o Plano Anual por R$ 21,00 e o Plano Vitalício por R$ 27,00, garantindo que sua homenagem seja eterna e sem anúncios."
     },
     {
         question: "O QR Code expira?",
-        answer: "Não. Seu presente fica disponível para sempre. Você pode guardar o QR Code e ele funcionará em qualquer Natal futuro."
+        answer: "No Plano Vitalício, seu presente nunca expira. No Plano Anual, ele fica disponível por 12 meses a partir da criação."
     },
     {
         question: "Posso editar depois de pronto?",
-        answer: "Para garantir que o link seja permanente e gratuito, os dados são salvos diretamente no link. Se precisar mudar algo, basta criar uma nova versão em segundos!"
+        answer: "Para garantir a segurança dos dados, as informações são processadas no momento da criação. Se precisar de uma alteração drástica, nossa equipe de suporte pode ajudar no Plano Vitalício."
     },
     {
         question: "Funciona em qualquer celular?",

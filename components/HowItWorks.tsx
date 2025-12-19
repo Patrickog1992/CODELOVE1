@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit3, CreditCard, Gift, HeartHandshake, Wand2 } from 'lucide-react';
+import { Edit3, Gift, HeartHandshake, Wand2 } from 'lucide-react';
 
 const steps = [
   {
@@ -11,13 +11,13 @@ const steps = [
   {
     icon: Wand2,
     title: "Gere o presente",
-    description: "Finalize a personalização e gere seu QR Code exclusivo instantaneamente.",
+    description: "Finalize a personalização e escolha o plano ideal para gerar seu QR Code exclusivo.",
     number: "2"
   },
   {
     icon: Gift,
     title: "Receba o link",
-    description: "Você terá acesso imediato a um QR Code natalino e um link exclusivo da sua página.",
+    description: "Você terá acesso imediato a um QR Code natalino e um link exclusivo da sua página eterna.",
     number: "3"
   },
   {
@@ -36,7 +36,7 @@ export const HowItWorks: React.FC = () => {
           <span className="text-christmas-red font-semibold uppercase tracking-wider text-sm mb-2 block">Como funciona?</span>
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Crie seu presente de Natal em poucos passos</h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Personalize uma página natalina especial para surpreender quem você ama. É simples, rápido e 100% gratuito.
+            Personalize uma página natalina especial para surpreender quem você ama com uma experiência inesquecível.
           </p>
         </div>
 
