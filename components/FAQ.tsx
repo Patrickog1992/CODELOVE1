@@ -6,23 +6,23 @@ import { FAQItem } from '../types';
 const faqItems: FAQItem[] = [
     {
         question: "Como recebo o presente?",
-        answer: "Assim que o pagamento for confirmado, você receberá um e-mail com o acesso para criar sua página e o QR Code exclusivo imediatamente."
+        answer: "Assim que você terminar de personalizar, o sistema gera na hora o seu link exclusivo e o QR Code. Você pode baixar e copiar na mesma hora."
     },
     {
-        question: "Posso editar depois de pronto?",
-        answer: "Sim! No plano 'Para Sempre', você tem acesso vitalício e pode editar fotos e textos sempre que desejar."
+        question: "É realmente gratuito?",
+        answer: "Sim! O CODELOVE é uma ferramenta gratuita para que você possa presentear quem ama neste Natal sem custos."
     },
     {
         question: "O QR Code expira?",
-        answer: "No plano 'Para Sempre', o QR Code é seu para a vida toda. No plano anual, ele é válido por 12 meses renováveis."
+        answer: "Não. Seu presente fica disponível para sempre. Você pode guardar o QR Code e ele funcionará em qualquer Natal futuro."
     },
     {
-        question: "Quais são as formas de pagamento?",
-        answer: "Aceitamos PIX para aprovação imediata e cartão de crédito. Todo o processo é 100% seguro."
+        question: "Posso editar depois de pronto?",
+        answer: "Para garantir que o link seja permanente e gratuito, os dados são salvos diretamente no link. Se precisar mudar algo, basta criar uma nova versão em segundos!"
     },
     {
-        question: "Consigo ver como vai ficar antes de pagar?",
-        answer: "Você pode visualizar exemplos de páginas criadas em nosso site. A personalização da sua página ocorre logo após a confirmação do pedido."
+        question: "Funciona em qualquer celular?",
+        answer: "Sim! A página é totalmente otimizada para ser aberta em qualquer smartphone (iPhone ou Android) através do QR Code ou link direto."
     }
 ];
 

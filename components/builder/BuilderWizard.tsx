@@ -46,7 +46,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
     musicUrl: initialData?.musicUrl || '',
     background: initialData?.background || 'none',
     email: initialData?.email || '',
-    selectedPlan: 'lifetime' // Default para plano grátis eterno
+    selectedPlan: 'lifetime'
   });
 
   const [playingPreview, setPlayingPreview] = useState<string | null>(null);
@@ -135,13 +135,10 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
 
         const jsonString = JSON.stringify(compressedData);
         const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
-        
         const origin = window.location.origin;
         const pathname = window.location.pathname;
         const cleanPath = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
-        
         const uniqueUrl = `${origin}${cleanPath}?gift=${encodedData}`;
-        
         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(uniqueUrl)}&color=D42426&bgcolor=ffffff&margin=10`;
 
         setGeneratedResult({
@@ -183,32 +180,25 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
       if (!files || files.length === 0) return;
-
       const filesArray = Array.from(files) as File[];
       const remainingSlots = 8 - formData.photos.length;
-
       if (filesArray.length > remainingSlots) {
           alert(`Você só pode adicionar mais ${remainingSlots} fotos.`);
           return;
       }
-
       setIsUploading(true);
       const uploadedUrls: string[] = [];
-
       for (const file of filesArray) {
           if (!file.type.startsWith('image/')) continue;
-
           const uploadData = new FormData();
           uploadData.append('file', file);
           uploadData.append('upload_preset', 'natal-upload');
           uploadData.append('folder', 'presentes-natal');
-
           try {
               const response = await fetch('https://api.cloudinary.com/v1_1/dzi28teuq/image/upload', {
                   method: 'POST',
                   body: uploadData
               });
-              
               const data = await response.json();
               if (data.secure_url) {
                   uploadedUrls.push(data.secure_url);
@@ -217,14 +207,12 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
               console.error("Network error uploading", err);
           }
       }
-
       if (uploadedUrls.length > 0) {
           setFormData(prev => ({
               ...prev,
               photos: [...prev.photos, ...uploadedUrls]
           }));
       }
-
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -301,17 +289,9 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
           <div className="space-y-6">
             <div className="space-y-3">
                 <input 
-                    type="file" 
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                    className="hidden" 
-                    accept="image/*"
-                    multiple
+                    type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*" multiple
                 />
-                <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`group relative border-2 border-dashed border-red-200 bg-red-50 hover:bg-red-100 transition-colors rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer min-h-[160px] ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
-                >
+                <div onClick={() => fileInputRef.current?.click()} className={`group relative border-2 border-dashed border-red-200 bg-red-50 hover:bg-red-100 transition-colors rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer min-h-[160px] ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
                       {isUploading ? (
                           <div className="flex flex-col items-center animate-pulse">
                               <Loader2 className="w-10 h-10 text-christmas-red animate-spin mb-3" />
@@ -323,14 +303,11 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                                 <ImagePlus className="w-7 h-7 text-christmas-red" />
                             </div>
                             <h4 className="font-bold text-gray-800 text-sm">Toque para adicionar fotos</h4>
-                            <p className="text-xs text-gray-500 mt-1 max-w-[200px] text-center">
-                                Escolha da sua galeria. (Máx 8 fotos)
-                            </p>
+                            <p className="text-xs text-gray-500 mt-1 max-w-[200px] text-center">Escolha da sua galeria. (Máx 8 fotos)</p>
                           </>
                       )}
                 </div>
             </div>
-            
             {formData.photos.length > 0 && (
                 <div className="pt-2 border-t border-gray-100">
                     <p className="text-sm font-medium text-gray-700 mb-2">Fotos Selecionadas ({formData.photos.length}/8)</p>
@@ -338,10 +315,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                          {formData.photos.map((photo, index) => (
                             <div key={index} className="relative w-16 h-16 shrink-0 rounded-md overflow-hidden group shadow-sm bg-gray-100">
                                 <img src={photo} className="w-full h-full object-cover" alt="Selected" />
-                                <button 
-                                    onClick={() => removePhoto(index)}
-                                    className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
+                                <button onClick={() => removePhoto(index)} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                     <Trash2 className="w-4 h-4 text-white" />
                                 </button>
                             </div>
@@ -358,18 +332,12 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                  {MUSIC_OPTIONS.map((track) => {
                      const isSelected = formData.musicUrl === track.url;
                      return (
-                         <div 
-                            key={track.id}
-                            onClick={() => handleMusicSelect(track)}
-                            className={`flex items-center justify-between p-2 rounded-lg border transition-all cursor-pointer ${isSelected ? 'bg-red-50 border-christmas-red ring-1 ring-christmas-red' : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50'}`}
-                         >
+                         <div key={track.id} onClick={() => handleMusicSelect(track)} className={`flex items-center justify-between p-2 rounded-lg border transition-all cursor-pointer ${isSelected ? 'bg-red-50 border-christmas-red ring-1 ring-christmas-red' : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50'}`}>
                             <div className="flex items-center gap-2">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isSelected ? 'bg-christmas-red text-white' : 'bg-gray-100 text-gray-400'}`}>
                                     <Music className="w-4 h-4" />
                                 </div>
-                                <p className={`text-sm font-semibold truncate ${isSelected ? 'text-christmas-darkRed' : 'text-gray-700'}`}>
-                                    {track.name}
-                                </p>
+                                <p className={`text-sm font-semibold truncate ${isSelected ? 'text-christmas-darkRed' : 'text-gray-700'}`}>{track.name}</p>
                             </div>
                             <div className="flex items-center gap-2">
                                 <button onClick={(e) => togglePreview(track.url, e)} className="p-1.5 rounded-full hover:bg-black/5">
@@ -394,11 +362,7 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                { id: 'aurora', label: 'Aurora Boreal ✨' },
              ].map((bg) => (
                <button
-                 key={bg.id}
-                 onClick={() => updateField('background', bg.id)}
-                 className={`w-full text-left px-5 py-3 rounded-xl transition-all border flex items-center justify-between ${
-                   formData.background === bg.id ? 'bg-christmas-snow border-christmas-red text-christmas-darkRed' : 'bg-white border-gray-100'
-                 }`}
+                 key={bg.id} onClick={() => updateField('background', bg.id)} className={`w-full text-left px-5 py-3 rounded-xl transition-all border flex items-center justify-between ${formData.background === bg.id ? 'bg-christmas-snow border-christmas-red text-christmas-darkRed' : 'bg-white border-gray-100'}`}
                >
                  {bg.label}
                  {formData.background === bg.id && <Check className="w-5 h-5 text-christmas-red" />}
@@ -454,8 +418,8 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col md:flex-row overflow-hidden">
-      <div className="w-full md:w-1/2 lg:w-5/12 flex flex-col h-full bg-white border-r border-gray-100 shadow-xl z-20">
+    <div className="fixed inset-0 z-50 bg-white flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
+      <div className="w-full md:w-1/2 lg:w-5/12 flex flex-col shrink-0 md:h-full bg-white border-r border-gray-100 shadow-xl z-20">
         <div className="p-6 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
              <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-500"><X className="w-5 h-5" /></button>
@@ -463,25 +427,37 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
           </div>
           <div className="text-sm font-medium text-gray-500">{currentStep + 1}/{steps.length}</div>
         </div>
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 md:p-10">
+        <div ref={scrollContainerRef} className="flex-1 md:overflow-y-auto p-6 md:p-10">
            <AnimatePresence mode="wait">
              <motion.div key={currentStep} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="max-w-md mx-auto">
                <h2 className="text-2xl font-bold text-gray-900 mb-2">{steps[currentStep].title}</h2>
                <p className="text-gray-500 mb-8">{steps[currentStep].description}</p>
                {renderStepContent()}
-                <div className="mt-8 pt-6 border-t border-gray-100 flex gap-4">
-                     <button onClick={handlePrev} className="flex-1 px-6 py-3 rounded-full border border-gray-300 text-gray-700 font-medium">Voltar</button>
-                     <button onClick={handleNext} className="flex-1 px-6 py-3 rounded-full bg-green-600 text-white font-bold animate-pulse-scale flex items-center justify-center gap-2">
-                       {currentStep === steps.length - 1 ? 'Gerar Presente Grátis' : 'Próxima etapa'}
-                       <ArrowRight className="w-4 h-4" />
-                     </button>
-                </div>
              </motion.div>
            </AnimatePresence>
         </div>
       </div>
-      <div className="hidden md:flex flex-1 bg-christmas-snow items-center justify-center p-8 relative overflow-hidden">
-        <PhonePreview data={formData} />
+      <div className="w-full md:flex-1 bg-christmas-snow flex flex-col items-center justify-start md:justify-center p-8 py-16 md:py-8 relative overflow-y-auto md:overflow-hidden shrink-0">
+        <div className="mb-8">
+           <PhonePreview data={formData} />
+        </div>
+        
+        {/* Navigation Buttons placed here (below preview) */}
+        <div className="w-full max-w-[320px] flex gap-4 pb-12">
+            <button 
+                onClick={handlePrev} 
+                className="flex-1 px-6 py-4 rounded-full border border-gray-300 bg-white text-gray-700 font-bold shadow-sm active:scale-95 transition-transform"
+            >
+                Voltar
+            </button>
+            <button 
+                onClick={handleNext} 
+                className="flex-2 px-8 py-4 rounded-full bg-green-600 text-white font-bold animate-pulse-scale flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"
+            >
+                {currentStep === steps.length - 1 ? 'Gerar Presente Grátis' : 'Próxima etapa'}
+                <ArrowRight className="w-4 h-4" />
+            </button>
+        </div>
       </div>
     </div>
   );

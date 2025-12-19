@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit3, CreditCard, Gift, HeartHandshake } from 'lucide-react';
+import { Edit3, CreditCard, Gift, HeartHandshake, Wand2 } from 'lucide-react';
 
 const steps = [
   {
@@ -9,20 +9,20 @@ const steps = [
     number: "1"
   },
   {
-    icon: CreditCard,
-    title: "Faça o pagamento",
-    description: "Escolha o plano ideal e faça o pagamento de forma rápida e segura.",
+    icon: Wand2,
+    title: "Gere o presente",
+    description: "Finalize a personalização e gere seu QR Code exclusivo instantaneamente.",
     number: "2"
   },
   {
     icon: Gift,
-    title: "Receba seu acesso",
-    description: "Você receberá por email um QR Code natalino e um link exclusivo da sua página.",
+    title: "Receba o link",
+    description: "Você terá acesso imediato a um QR Code natalino e um link exclusivo da sua página.",
     number: "3"
   },
   {
     icon: HeartHandshake,
-    title: "Compartilhe a emoção",
+    title: "Compartilhe",
     description: "Entregue o QR Code como presente ou envie o link e faça alguém chorar de emoção neste Natal.",
     number: "4"
   }
@@ -36,7 +36,7 @@ export const HowItWorks: React.FC = () => {
           <span className="text-christmas-red font-semibold uppercase tracking-wider text-sm mb-2 block">Como funciona?</span>
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Crie seu presente de Natal em poucos passos</h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Personalize uma página natalina especial para surpreender quem você ama. É simples, rápido e inesquecível.
+            Personalize uma página natalina especial para surpreender quem você ama. É simples, rápido e 100% gratuito.
           </p>
         </div>
 
@@ -61,7 +61,6 @@ export const HowItWorks: React.FC = () => {
 
         {/* Big Feature Section */}
         <div className="mt-24 flex flex-col md:flex-row items-center justify-center gap-12 max-w-6xl mx-auto">
-            {/* Text Side */}
             <div className="flex-1 text-center md:text-left relative z-10">
                 <h2 className="text-4xl md:text-6xl font-extrabold text-christmas-darkRed leading-tight mb-6 tracking-tight drop-shadow-sm">
                   ✨ Uma mensagem de Natal que ficará para sempre.
@@ -69,17 +68,11 @@ export const HowItWorks: React.FC = () => {
                 <p className="text-gray-600 text-xl md:text-2xl font-light">
                    Surpreenda quem você ama com uma experiência digital única, interativa e emocionante.
                 </p>
-                
-                {/* Decorative arrow pointing to phone on desktop */}
                 <div className="hidden md:block absolute -right-10 top-1/2 w-24 h-24 border-t-2 border-r-2 border-dashed border-red-300 rounded-tr-[50px] -rotate-12 transform translate-x-full"></div>
             </div>
 
-            {/* Image Side */}
             <div className="flex-1 flex justify-center md:justify-end relative">
-                {/* Background Glow */}
                 <div className="absolute inset-0 bg-gradient-to-tr from-red-100 to-gold-100 rounded-full blur-3xl opacity-60 transform scale-110"></div>
-                
-                {/* Phone Frame */}
                 <div className="relative border-gray-900 bg-gray-900 border-[12px] rounded-[2.5rem] shadow-2xl overflow-hidden w-[280px] md:w-[300px] transform md:rotate-[-6deg] hover:rotate-0 transition-transform duration-500 z-10">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-[24px] bg-gray-900 rounded-b-xl z-20"></div>
                     <img 
