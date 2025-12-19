@@ -58,6 +58,9 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
   const [playingPreview, setPlayingPreview] = useState<string | null>(null);
   const audioPreviewRef = useRef<HTMLAudioElement | null>(null);
 
+  // Copy Feedback State
+  const [isCopied, setIsCopied] = useState(false);
+
   // Parse date for selectors if exists
   const parseDate = (dateString: string) => {
       if(!dateString) return { day: '', month: '', year: '' };
@@ -192,6 +195,14 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
       } else {
           setPlayingPreview(url);
       }
+  };
+  
+  const handleCopyLink = () => {
+    if (generatedResult?.url) {
+        navigator.clipboard.writeText(generatedResult.url);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 3000);
+    }
   };
 
 
@@ -587,15 +598,22 @@ export const BuilderWizard: React.FC<BuilderWizardProps> = ({ onClose, initialDa
                          )}
 
                          <div className="space-y-3 w-full">
-                             <div className="flex gap-2 cursor-pointer group" onClick={() => navigator.clipboard.writeText(generatedResult.url)}>
-                                 <div className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs md:text-sm font-bold text-christmas-red truncate text-left font-mono uppercase tracking-wide group-hover:bg-red-50 transition-colors flex items-center">
-                                     CLIQUE E COPIE O LINK DO PRESENTE
+                             <div className="flex gap-2 cursor-pointer group" onClick={handleCopyLink}>
+                                 <div className={`flex-1 border rounded-xl px-4 py-3 text-xs md:text-sm font-bold truncate text-left font-mono uppercase tracking-wide transition-colors flex items-center ${isCopied ? 'bg-green-100 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-christmas-red group-hover:bg-red-50'}`}>
+                                     {isCopied ? (
+                                         <>
+                                            <Check className="w-4 h-4 mr-2" />
+                                            COPIADO!
+                                         </>
+                                     ) : (
+                                        "CLIQUE E COPIE O LINK DO PRESENTE"
+                                     )}
                                  </div>
                                  <button 
-                                    className="bg-gray-100 group-hover:bg-red-100 text-gray-700 group-hover:text-red-700 px-4 rounded-xl flex items-center justify-center transition-all active:scale-95"
+                                    className={`px-4 rounded-xl flex items-center justify-center transition-all active:scale-95 ${isCopied ? 'bg-green-100 text-green-700' : 'bg-gray-100 group-hover:bg-red-100 text-gray-700 group-hover:text-red-700'}`}
                                     title="Copiar Link"
                                  >
-                                     <Copy className="w-5 h-5" />
+                                     {isCopied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
                                  </button>
                              </div>
                              

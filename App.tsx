@@ -12,11 +12,15 @@ import { Footer } from './components/Footer';
 import { BuilderWizard } from './components/builder/BuilderWizard';
 import { GiftViewer } from './components/GiftViewer';
 import { SocialProofPopup } from './components/SocialProofPopup';
+import { AccessGate } from './components/AccessGate'; // Import AccessGate
 import { BuilderData } from './types';
 
 function App() {
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   
+  // Access Control State
+  const [hasAccess, setHasAccess] = useState(false);
+
   // State to handle return from payment
   const [startAtSuccess, setStartAtSuccess] = useState(false);
   const [restoredData, setRestoredData] = useState<Partial<BuilderData> | undefined>(undefined);
@@ -47,7 +51,9 @@ function App() {
         };
 
         setGiftData(reconstructedData);
-        return; // If viewing a gift, ignore payment checks
+        // Viewer doesn't need access code
+        setHasAccess(true);
+        return; 
       } catch (e) {
         console.error("Error parsing gift data", e);
       }
@@ -81,6 +87,7 @@ function App() {
                 setRestoredData(reconstructedData);
                 setStartAtSuccess(true);
                 setIsBuilderOpen(true);
+                setHasAccess(true); // Grant access on payment return
                 
                 // Clear storage to prevent re-opening on refresh
                 localStorage.removeItem('codelove_pending_gift');
@@ -92,8 +99,19 @@ function App() {
             }
         }
     }
+    
+    // Check session storage for access
+    const sessionAccess = sessionStorage.getItem('codelove_access');
+    if (sessionAccess === 'granted') {
+        setHasAccess(true);
+    }
 
   }, []);
+
+  const handleAccessGranted = () => {
+      setHasAccess(true);
+      sessionStorage.setItem('codelove_access', 'granted');
+  };
 
   const openBuilder = () => {
     setIsBuilderOpen(true);
@@ -106,9 +124,14 @@ function App() {
     setIsBuilderOpen(false);
   };
 
-  // If viewing a gift, show the Viewer ONLY
+  // If viewing a gift, show the Viewer ONLY (Bypasses Gate if giftData is set)
   if (giftData) {
     return <GiftViewer data={giftData} />;
+  }
+
+  // If NO access yet, show Gate
+  if (!hasAccess) {
+      return <AccessGate onAccessGranted={handleAccessGranted} />;
   }
 
   // If builder is open, show builder
